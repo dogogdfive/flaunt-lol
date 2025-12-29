@@ -42,6 +42,7 @@ interface PendingProduct {
   id: string;
   name: string;
   priceSol: number;
+  priceUsdc: number;
   store: {
     name: string;
   };
@@ -206,8 +207,8 @@ export default function AdminDashboard() {
   };
 
   const statCards = [
-    { name: 'Total Revenue', value: `${stats.totalRevenue.toFixed(2)} SOL`, icon: DollarSign, color: 'blue' },
-    { name: 'Total Orders', value: stats.totalOrders.toString(), icon: ShoppingCart, color: 'green' },
+    { name: 'Total Revenue', value: `$${stats.totalRevenue.toFixed(2)} USDC`, icon: DollarSign, color: 'green' },
+    { name: 'Total Orders', value: stats.totalOrders.toString(), icon: ShoppingCart, color: 'blue' },
     { name: 'Active Stores', value: stats.activeStores.toString(), icon: Store, color: 'purple' },
     { name: 'Total Users', value: stats.totalUsers.toString(), icon: Users, color: 'yellow' },
   ];
@@ -359,7 +360,7 @@ export default function AdminDashboard() {
                     <div>
                       <div className="text-white font-medium">{product.name}</div>
                       <div className="text-sm text-gray-400">
-                        {product.store?.name || 'Unknown store'} - {product.priceSol?.toFixed(2) || '0.00'} SOL
+                        {product.store?.name || 'Unknown store'} - ${product.priceUsdc?.toFixed(2) || '0.00'} USDC
                       </div>
                     </div>
                     <div className="flex items-center gap-2">

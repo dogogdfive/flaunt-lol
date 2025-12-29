@@ -43,7 +43,7 @@ import {
 
 // Solana config
 const SOLANA_RPC = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
-const PLATFORM_WALLET = '5CoxdsuoRHDwDPVYqPoeiJxWZ588jXhpimCRJUj8FUN1';
+const DEFAULT_PLATFORM_WALLET = '5CoxdsuoRHDwDPVYqPoeiJxWZ588jXhpimCRJUj8FUN1';
 const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 const USDC_DECIMALS = 6;
 
@@ -113,8 +113,27 @@ export default function CheckoutPage() {
   const [manualTxSignature, setManualTxSignature] = useState('');
   const [verifyingPayment, setVerifyingPayment] = useState(false);
 
+  // Platform wallet from settings
+  const [platformWallet, setPlatformWallet] = useState(DEFAULT_PLATFORM_WALLET);
+
+  // Fetch platform wallet from settings
+  useEffect(() => {
+    async function fetchSettings() {
+      try {
+        const res = await fetch('/api/settings/public');
+        const data = await res.json();
+        if (data.platformWallet) {
+          setPlatformWallet(data.platformWallet);
+        }
+      } catch (error) {
+        console.error('Failed to fetch platform settings:', error);
+      }
+    }
+    fetchSettings();
+  }, []);
+
   const copyWalletAddress = () => {
-    navigator.clipboard.writeText(PLATFORM_WALLET);
+    navigator.clipboard.writeText(platformWallet);
     setCopiedWallet(true);
     setTimeout(() => setCopiedWallet(false), 2000);
   };
@@ -310,7 +329,7 @@ export default function CheckoutPage() {
       console.log('Building USDC transaction...');
       // 3. Send USDC payment transaction
       const connection = new Connection(SOLANA_RPC, 'confirmed');
-      const platformPubkey = new PublicKey(PLATFORM_WALLET);
+      const platformPubkey = new PublicKey(platformWallet);
       const payerPubkey = publicKey;
 
       // USDC transfer amount
@@ -1029,7 +1048,7 @@ export default function CheckoutPage() {
                               <p className="text-xs text-gray-500 mb-2">Scan to get wallet address:</p>
                               <div className="flex justify-center">
                                 <img
-                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${PLATFORM_WALLET}`}
+                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${platformWallet}`}
                                   alt="Wallet QR Code"
                                   className="rounded-lg"
                                   width={150}
@@ -1043,7 +1062,7 @@ export default function CheckoutPage() {
                               <p className="text-xs text-gray-500 mb-1">Send to Wallet Address:</p>
                               <div className="flex items-center gap-2">
                                 <code className="text-sm text-gray-300 font-mono flex-1 break-all">
-                                  {PLATFORM_WALLET}
+                                  {platformWallet}
                                 </code>
                                 <button
                                   type="button"

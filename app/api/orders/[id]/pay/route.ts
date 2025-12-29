@@ -15,9 +15,24 @@ import {
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'lopserf@gmail.com';
 
 const SOLANA_RPC = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
-const PLATFORM_WALLET = '5CoxdsuoRHDwDPVYqPoeiJxWZ588jXhpimCRJUj8FUN1';
+const DEFAULT_PLATFORM_WALLET = '5CoxdsuoRHDwDPVYqPoeiJxWZ588jXhpimCRJUj8FUN1';
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const PAYMENT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+
+// Get platform wallet from database settings
+async function getPlatformWallet(): Promise<string> {
+  try {
+    const setting = await prisma.platformSettings.findUnique({
+      where: { key: 'platform_wallet' },
+    });
+    if (setting?.value && typeof setting.value === 'object' && 'value' in setting.value) {
+      return String((setting.value as { value: string }).value) || DEFAULT_PLATFORM_WALLET;
+    }
+  } catch (error) {
+    console.error('Error fetching platform wallet:', error);
+  }
+  return DEFAULT_PLATFORM_WALLET;
+}
 
 export async function POST(
   request: NextRequest,
@@ -133,6 +148,7 @@ export async function POST(
 
     // Verify payment amount and recipient
     const expectedAmount = Number(order.subtotal);
+    const PLATFORM_WALLET = await getPlatformWallet();
     const platformWallet = new PublicKey(PLATFORM_WALLET);
     let paymentVerified = false;
 

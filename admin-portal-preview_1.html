@@ -1,0 +1,1803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Portal | store.lol</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: #1f2937;
+            --bg-hover: #374151;
+            --border-color: #374151;
+            --text-primary: #ffffff;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --blue: #3b82f6;
+            --blue-hover: #2563eb;
+            --green: #10b981;
+            --green-bg: rgba(16, 185, 129, 0.1);
+            --yellow: #f59e0b;
+            --yellow-bg: rgba(245, 158, 11, 0.1);
+            --red: #ef4444;
+            --red-bg: rgba(239, 68, 68, 0.1);
+            --purple: #8b5cf6;
+            --purple-bg: rgba(139, 92, 246, 0.1);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        /* Layout */
+        .app {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            padding: 24px 16px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 32px;
+            padding: 0 12px;
+        }
+        
+        .sidebar-logo-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .sidebar-logo-icon::after {
+            content: '';
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+        }
+        
+        .sidebar-logo-text {
+            font-weight: 700;
+            font-size: 18px;
+        }
+        
+        .sidebar-logo-badge {
+            background: var(--purple);
+            color: white;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: auto;
+        }
+        
+        .sidebar-section {
+            margin-bottom: 24px;
+        }
+        
+        .sidebar-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0 12px;
+            margin-bottom: 8px;
+        }
+        
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .sidebar-item:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+        
+        .sidebar-item.active {
+            background: var(--blue);
+            color: white;
+        }
+        
+        .sidebar-item-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .sidebar-item-badge {
+            margin-left: auto;
+            background: var(--red);
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 10px;
+            min-width: 20px;
+            text-align: center;
+        }
+        
+        /* Main Content */
+        .main {
+            flex: 1;
+            margin-left: 260px;
+        }
+        
+        /* Header */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+        
+        .header-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .search-box {
+            position: relative;
+        }
+        
+        .search-input {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 16px 8px 40px;
+            color: var(--text-primary);
+            font-size: 14px;
+            width: 280px;
+            outline: none;
+        }
+        
+        .search-input::placeholder {
+            color: var(--text-muted);
+        }
+        
+        .search-input:focus {
+            border-color: var(--blue);
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+        
+        .header-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 12px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .header-user:hover {
+            background: var(--bg-hover);
+        }
+        
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: var(--purple);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .user-info {
+            text-align: left;
+        }
+        
+        .user-name {
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .user-role {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+        
+        /* Content Area */
+        .content {
+            padding: 32px;
+        }
+        
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        
+        @media (max-width: 1200px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        .stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+        }
+        
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .stat-icon.blue { background: rgba(59, 130, 246, 0.15); color: var(--blue); }
+        .stat-icon.green { background: var(--green-bg); color: var(--green); }
+        .stat-icon.yellow { background: var(--yellow-bg); color: var(--yellow); }
+        .stat-icon.purple { background: var(--purple-bg); color: var(--purple); }
+        
+        .stat-change {
+            font-size: 12px;
+            font-weight: 500;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+        
+        .stat-change.positive { background: var(--green-bg); color: var(--green); }
+        .stat-change.negative { background: var(--red-bg); color: var(--red); }
+        
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+        
+        /* Tables */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .card-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: var(--blue);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--blue-hover);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+        }
+        
+        .btn-success {
+            background: var(--green);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .btn-danger {
+            background: var(--red);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 16px 24px;
+            text-align: left;
+        }
+        
+        th {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        td {
+            font-size: 14px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        tr:hover td {
+            background: var(--bg-card);
+        }
+        
+        /* Status Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .badge-pending { background: var(--yellow-bg); color: var(--yellow); }
+        .badge-approved { background: var(--green-bg); color: var(--green); }
+        .badge-rejected { background: var(--red-bg); color: var(--red); }
+        .badge-processing { background: var(--blue); background: rgba(59, 130, 246, 0.15); color: var(--blue); }
+        
+        /* Store/Product Item */
+        .item-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .item-image {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            background: var(--bg-card);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .item-details {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .item-name {
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+        
+        .item-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        
+        /* User Info */
+        .user-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .user-cell-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--purple);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        /* Actions */
+        .action-btns {
+            display: flex;
+            gap: 6px;
+        }
+        
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .action-btn.approve {
+            background: var(--green-bg);
+            color: var(--green);
+        }
+        
+        .action-btn.approve:hover {
+            background: var(--green);
+            color: white;
+        }
+        
+        .action-btn.reject {
+            background: var(--red-bg);
+            color: var(--red);
+        }
+        
+        .action-btn.reject:hover {
+            background: var(--red);
+            color: white;
+        }
+        
+        .action-btn.view {
+            background: var(--bg-card);
+            color: var(--text-secondary);
+        }
+        
+        .action-btn.view:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .tab {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            background: none;
+            border: none;
+            transition: all 0.2s;
+        }
+        
+        .tab:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+        
+        .tab.active {
+            background: var(--blue);
+            color: white;
+        }
+        
+        .tab-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 18px;
+            height: 18px;
+            background: var(--red);
+            color: white;
+            font-size: 10px;
+            font-weight: 600;
+            border-radius: 9px;
+            margin-left: 6px;
+            padding: 0 5px;
+        }
+        
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 24px;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+        }
+        
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            border: none;
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+        
+        .modal-close:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+        
+        .modal-body {
+            padding: 24px;
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 20px 24px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        
+        .form-input,
+        .form-textarea,
+        .form-select {
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+        }
+        
+        .form-input:focus,
+        .form-textarea:focus,
+        .form-select:focus {
+            border-color: var(--blue);
+        }
+        
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        /* Info Display */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        
+        .info-item {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 12px 16px;
+        }
+        
+        .info-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+        
+        .info-value {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        /* Page Hidden */
+        .page {
+            display: none;
+        }
+        
+        .page.active {
+            display: block;
+        }
+        
+        /* Charts Placeholder */
+        .chart-placeholder {
+            background: var(--bg-card);
+            border-radius: 8px;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            margin: 24px;
+        }
+        
+        /* Two Column Layout */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        
+        @media (max-width: 1000px) {
+            .two-col {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <div class="sidebar-logo-icon"></div>
+                <span class="sidebar-logo-text">store.lol</span>
+                <span class="sidebar-logo-badge">Admin</span>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Overview</div>
+                <nav class="sidebar-nav">
+                    <a class="sidebar-item active" onclick="showPage('dashboard')">
+                        <span class="sidebar-item-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                                <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                            </svg>
+                        </span>
+                        Dashboard
+                    </a>
+                    <a class="sidebar-item" onclick="showPage('analytics')">
+                        <span class="sidebar-item-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>
+                            </svg>
+                        </span>
+                        Analytics
+                    </a>
+                </nav>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Management</div>
+                <nav class="sidebar-nav">
+                    <a class="sidebar-item" onclick="showPage('stores')">
+                        <span class="sidebar-item-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                <polyline points="9,22 9,12 15,12 15,22"/>
+                            </svg>
+                        </span>
+                        Stores
+                        <span class="sidebar-item-badge">5</span>
+                    </a>
+                    <a class="sidebar-item" onclick="showPage('products')">
+                        <span class="sidebar-item-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                            </svg>
+                        </span>
+                        Products
+                        <span class="sidebar-item-badge">12</span>
+                    </a>
+                    <a class="sidebar-item" onclick="showPage('orders')">
+                        <span class="sidebar-item-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                                <line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+                            </svg>
+                        </span>
+                        Orders
+                    </a>
+                    <a class="sidebar-item" onclick="showPage('payouts')">
+                        <span class="sidebar-item-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+                            </svg>
+                        </span>
+                        Payouts
+                        <span class="sidebar-item-badge" style="background: var(--yellow)">3</span>
+                    </a>
+                </nav>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Users</div>
+                <nav class="sidebar-nav">
+                    <a class="sidebar-item" onclick="showPage('users')">
+                        <span class="sidebar-item-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                        </span>
+                        Users
+                    </a>
+                    <a class="sidebar-item" onclick="showPage('merchants')">
+                        <span class="sidebar-item-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/>
+                                <line x1="22" y1="11" x2="16" y2="11"/>
+                            </svg>
+                        </span>
+                        Merchants
+                    </a>
+                </nav>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">System</div>
+                <nav class="sidebar-nav">
+                    <a class="sidebar-item" onclick="showPage('settings')">
+                        <span class="sidebar-item-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                            </svg>
+                        </span>
+                        Settings
+                    </a>
+                </nav>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Header -->
+            <header class="header">
+                <h1 class="header-title" id="pageTitle">Dashboard</h1>
+                <div class="header-actions">
+                    <div class="search-box">
+                        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                        </svg>
+                        <input type="text" class="search-input" placeholder="Search...">
+                    </div>
+                    <div class="header-user">
+                        <div class="user-avatar">A</div>
+                        <div class="user-info">
+                            <div class="user-name">Admin User</div>
+                            <div class="user-role">Super Admin</div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Dashboard Page -->
+            <div class="page active" id="page-dashboard">
+                <div class="content">
+                    <!-- Stats -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon blue">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                    </svg>
+                                </div>
+                                <span class="stat-change positive">+12.5%</span>
+                            </div>
+                            <div class="stat-value">524.8 SOL</div>
+                            <div class="stat-label">Total Revenue</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon green">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                                        <line x1="3" y1="6" x2="21" y2="6"/>
+                                    </svg>
+                                </div>
+                                <span class="stat-change positive">+8.2%</span>
+                            </div>
+                            <div class="stat-value">1,284</div>
+                            <div class="stat-label">Total Orders</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon yellow">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                    </svg>
+                                </div>
+                                <span class="stat-change positive">+3</span>
+                            </div>
+                            <div class="stat-value">47</div>
+                            <div class="stat-label">Active Stores</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon purple">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                        <circle cx="9" cy="7" r="4"/>
+                                    </svg>
+                                </div>
+                                <span class="stat-change positive">+24</span>
+                            </div>
+                            <div class="stat-value">3,847</div>
+                            <div class="stat-label">Total Users</div>
+                        </div>
+                    </div>
+                    
+                    <div class="two-col">
+                        <!-- Pending Store Approvals -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">Pending Store Approvals</h2>
+                                <button class="btn btn-secondary btn-sm" onclick="showPage('stores')">View All</button>
+                            </div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Store</th>
+                                        <th>Applied</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <div class="item-info">
+                                                <div class="item-image" style="background: #7c3aed;">🎨</div>
+                                                <div class="item-details">
+                                                    <span class="item-name">NFT Merch Co</span>
+                                                    <span class="item-meta">by @nftlover</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>2 hours ago</td>
+                                        <td>
+                                            <div class="action-btns">
+                                                <button class="action-btn approve" title="Approve">✓</button>
+                                                <button class="action-btn reject" title="Reject">✕</button>
+                                                <button class="action-btn view" title="View" onclick="openStoreModal()">👁</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="item-info">
+                                                <div class="item-image" style="background: #f59e0b;">👕</div>
+                                                <div class="item-details">
+                                                    <span class="item-name">Crypto Threads</span>
+                                                    <span class="item-meta">by @threadmaker</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>5 hours ago</td>
+                                        <td>
+                                            <div class="action-btns">
+                                                <button class="action-btn approve" title="Approve">✓</button>
+                                                <button class="action-btn reject" title="Reject">✕</button>
+                                                <button class="action-btn view" title="View">👁</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="item-info">
+                                                <div class="item-image" style="background: #10b981;">🧸</div>
+                                                <div class="item-details">
+                                                    <span class="item-name">Plushie Paradise</span>
+                                                    <span class="item-meta">by @plushfan</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>1 day ago</td>
+                                        <td>
+                                            <div class="action-btns">
+                                                <button class="action-btn approve" title="Approve">✓</button>
+                                                <button class="action-btn reject" title="Reject">✕</button>
+                                                <button class="action-btn view" title="View">👁</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Pending Product Reviews -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">Pending Product Reviews</h2>
+                                <button class="btn btn-secondary btn-sm" onclick="showPage('products')">View All</button>
+                            </div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Store</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <div class="item-info">
+                                                <div class="item-image" style="background: #3b82f6;"></div>
+                                                <div class="item-details">
+                                                    <span class="item-name">SOL Hoodie</span>
+                                                    <span class="item-meta">0.45 SOL</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>Crypto Merch</td>
+                                        <td>
+                                            <div class="action-btns">
+                                                <button class="action-btn approve" title="Approve">✓</button>
+                                                <button class="action-btn reject" title="Reject">✕</button>
+                                                <button class="action-btn view" title="View" onclick="openProductModal()">👁</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="item-info">
+                                                <div class="item-image" style="background: #ef4444;"></div>
+                                                <div class="item-details">
+                                                    <span class="item-name">Degen Cap</span>
+                                                    <span class="item-meta">0.15 SOL</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>Degen Wear</td>
+                                        <td>
+                                            <div class="action-btns">
+                                                <button class="action-btn approve" title="Approve">✓</button>
+                                                <button class="action-btn reject" title="Reject">✕</button>
+                                                <button class="action-btn view" title="View">👁</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="item-info">
+                                                <div class="item-image" style="background: #8b5cf6;"></div>
+                                                <div class="item-details">
+                                                    <span class="item-name">Phantom Plush</span>
+                                                    <span class="item-meta">0.35 SOL</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>Wallet Merch</td>
+                                        <td>
+                                            <div class="action-btns">
+                                                <button class="action-btn approve" title="Approve">✓</button>
+                                                <button class="action-btn reject" title="Reject">✕</button>
+                                                <button class="action-btn view" title="View">👁</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Orders -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Recent Orders</h2>
+                            <button class="btn btn-secondary btn-sm" onclick="showPage('orders')">View All</button>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Order</th>
+                                    <th>Customer</th>
+                                    <th>Store</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>#ORD-1284</strong></td>
+                                    <td>
+                                        <div class="user-cell">
+                                            <div class="user-cell-avatar">J</div>
+                                            <span>john.sol</span>
+                                        </div>
+                                    </td>
+                                    <td>CHILLHOUSE</td>
+                                    <td><strong>0.41 SOL</strong></td>
+                                    <td><span class="badge badge-processing">Processing</span></td>
+                                    <td>2 min ago</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>#ORD-1283</strong></td>
+                                    <td>
+                                        <div class="user-cell">
+                                            <div class="user-cell-avatar">S</div>
+                                            <span>sarah.sol</span>
+                                        </div>
+                                    </td>
+                                    <td>TOKABU</td>
+                                    <td><strong>0.65 SOL</strong></td>
+                                    <td><span class="badge badge-approved">Shipped</span></td>
+                                    <td>15 min ago</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>#ORD-1282</strong></td>
+                                    <td>
+                                        <div class="user-cell">
+                                            <div class="user-cell-avatar">M</div>
+                                            <span>mike.sol</span>
+                                        </div>
+                                    </td>
+                                    <td>Scrotoshis</td>
+                                    <td><strong>1.23 SOL</strong></td>
+                                    <td><span class="badge badge-approved">Delivered</span></td>
+                                    <td>1 hour ago</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>#ORD-1281</strong></td>
+                                    <td>
+                                        <div class="user-cell">
+                                            <div class="user-cell-avatar">A</div>
+                                            <span>alex.sol</span>
+                                        </div>
+                                    </td>
+                                    <td>PUMP Store</td>
+                                    <td><strong>0.29 SOL</strong></td>
+                                    <td><span class="badge badge-pending">Pending</span></td>
+                                    <td>2 hours ago</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Stores Page -->
+            <div class="page" id="page-stores">
+                <div class="content">
+                    <div class="card">
+                        <div class="tabs">
+                            <button class="tab active">Pending <span class="tab-badge">5</span></button>
+                            <button class="tab">Approved</button>
+                            <button class="tab">Rejected</button>
+                            <button class="tab">All Stores</button>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Store</th>
+                                    <th>Owner</th>
+                                    <th>Category</th>
+                                    <th>Applied</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <div class="item-info">
+                                            <div class="item-image" style="background: #7c3aed;">🎨</div>
+                                            <div class="item-details">
+                                                <span class="item-name">NFT Merch Co</span>
+                                                <span class="item-meta">nftmerch.store.lol</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="user-cell">
+                                            <div class="user-cell-avatar">N</div>
+                                            <span>nftlover.sol</span>
+                                        </div>
+                                    </td>
+                                    <td>Art & Collectibles</td>
+                                    <td>2 hours ago</td>
+                                    <td><span class="badge badge-pending">Pending</span></td>
+                                    <td>
+                                        <div class="action-btns">
+                                            <button class="action-btn approve" title="Approve">✓</button>
+                                            <button class="action-btn reject" title="Reject">✕</button>
+                                            <button class="action-btn view" title="View" onclick="openStoreModal()">👁</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="item-info">
+                                            <div class="item-image" style="background: #f59e0b;">👕</div>
+                                            <div class="item-details">
+                                                <span class="item-name">Crypto Threads</span>
+                                                <span class="item-meta">cryptothreads.store.lol</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="user-cell">
+                                            <div class="user-cell-avatar">T</div>
+                                            <span>threadmaker.sol</span>
+                                        </div>
+                                    </td>
+                                    <td>Apparel</td>
+                                    <td>5 hours ago</td>
+                                    <td><span class="badge badge-pending">Pending</span></td>
+                                    <td>
+                                        <div class="action-btns">
+                                            <button class="action-btn approve" title="Approve">✓</button>
+                                            <button class="action-btn reject" title="Reject">✕</button>
+                                            <button class="action-btn view" title="View">👁</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="item-info">
+                                            <div class="item-image" style="background: #10b981;">🧸</div>
+                                            <div class="item-details">
+                                                <span class="item-name">Plushie Paradise</span>
+                                                <span class="item-meta">plushies.store.lol</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="user-cell">
+                                            <div class="user-cell-avatar">P</div>
+                                            <span>plushfan.sol</span>
+                                        </div>
+                                    </td>
+                                    <td>Collectibles</td>
+                                    <td>1 day ago</td>
+                                    <td><span class="badge badge-pending">Pending</span></td>
+                                    <td>
+                                        <div class="action-btns">
+                                            <button class="action-btn approve" title="Approve">✓</button>
+                                            <button class="action-btn reject" title="Reject">✕</button>
+                                            <button class="action-btn view" title="View">👁</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Products Page -->
+            <div class="page" id="page-products">
+                <div class="content">
+                    <div class="card">
+                        <div class="tabs">
+                            <button class="tab active">Pending Review <span class="tab-badge">12</span></button>
+                            <button class="tab">Approved</button>
+                            <button class="tab">Rejected</button>
+                            <button class="tab">All Products</button>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Store</th>
+                                    <th>Price</th>
+                                    <th>Inventory</th>
+                                    <th>Submitted</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <div class="item-info">
+                                            <div class="item-image" style="background: #3b82f6;"></div>
+                                            <div class="item-details">
+                                                <span class="item-name">SOL Hoodie - Limited Edition</span>
+                                                <span class="item-meta">Physical • Apparel</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>Crypto Merch</td>
+                                    <td><strong>0.45 SOL</strong></td>
+                                    <td>250</td>
+                                    <td>30 min ago</td>
+                                    <td>
+                                        <div class="action-btns">
+                                            <button class="action-btn approve" title="Approve">✓</button>
+                                            <button class="action-btn reject" title="Reject">✕</button>
+                                            <button class="action-btn view" title="View" onclick="openProductModal()">👁</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="item-info">
+                                            <div class="item-image" style="background: #ef4444;"></div>
+                                            <div class="item-details">
+                                                <span class="item-name">Degen Snapback Cap</span>
+                                                <span class="item-meta">Physical • Accessories</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>Degen Wear</td>
+                                    <td><strong>0.15 SOL</strong></td>
+                                    <td>500</td>
+                                    <td>2 hours ago</td>
+                                    <td>
+                                        <div class="action-btns">
+                                            <button class="action-btn approve" title="Approve">✓</button>
+                                            <button class="action-btn reject" title="Reject">✕</button>
+                                            <button class="action-btn view" title="View">👁</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="item-info">
+                                            <div class="item-image" style="background: #8b5cf6;"></div>
+                                            <div class="item-details">
+                                                <span class="item-name">Phantom Ghost Plush</span>
+                                                <span class="item-meta">Physical • Collectibles</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>Wallet Merch</td>
+                                    <td><strong>0.35 SOL</strong></td>
+                                    <td>100</td>
+                                    <td>4 hours ago</td>
+                                    <td>
+                                        <div class="action-btns">
+                                            <button class="action-btn approve" title="Approve">✓</button>
+                                            <button class="action-btn reject" title="Reject">✕</button>
+                                            <button class="action-btn view" title="View">👁</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Payouts Page -->
+            <div class="page" id="page-payouts">
+                <div class="content">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon yellow">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="stat-value">12.4 SOL</div>
+                            <div class="stat-label">Pending Payouts</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon green">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                        <polyline points="22 4 12 14.01 9 11.01"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="stat-value">487.2 SOL</div>
+                            <div class="stat-label">Paid Out (All Time)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon blue">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="1" y="4" width="22" height="16" rx="2"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="stat-value">18.4 SOL</div>
+                            <div class="stat-label">Platform Fees Earned</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon purple">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="stat-value">3.5%</div>
+                            <div class="stat-label">Platform Fee Rate</div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Pending Payouts</h2>
+                            <button class="btn btn-success">Process All Payouts</button>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Store</th>
+                                    <th>Orders</th>
+                                    <th>Amount</th>
+                                    <th>Wallet</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <div class="item-info">
+                                            <div class="item-image" style="background: #10b981;">C</div>
+                                            <div class="item-details">
+                                                <span class="item-name">CHILLHOUSE</span>
+                                                <span class="item-meta">47 total orders</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>8 orders</td>
+                                    <td><strong>4.82 SOL</strong></td>
+                                    <td><code style="font-size:11px;background:var(--bg-card);padding:4px 8px;border-radius:4px;">Gh7x...3kPq</code></td>
+                                    <td><span class="badge badge-pending">Ready</span></td>
+                                    <td>
+                                        <button class="btn btn-success btn-sm">Pay Now</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="item-info">
+                                            <div class="item-image" style="background: #3b82f6;">T</div>
+                                            <div class="item-details">
+                                                <span class="item-name">TOKABU</span>
+                                                <span class="item-meta">124 total orders</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>15 orders</td>
+                                    <td><strong>5.67 SOL</strong></td>
+                                    <td><code style="font-size:11px;background:var(--bg-card);padding:4px 8px;border-radius:4px;">9kLm...x7Rw</code></td>
+                                    <td><span class="badge badge-pending">Ready</span></td>
+                                    <td>
+                                        <button class="btn btn-success btn-sm">Pay Now</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="item-info">
+                                            <div class="item-image" style="background: #f59e0b;">P</div>
+                                            <div class="item-details">
+                                                <span class="item-name">PUMP Store</span>
+                                                <span class="item-meta">31 total orders</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>3 orders</td>
+                                    <td><strong>1.91 SOL</strong></td>
+                                    <td><code style="font-size:11px;background:var(--bg-card);padding:4px 8px;border-radius:4px;">Bp2n...h8Yx</code></td>
+                                    <td><span class="badge badge-pending">Ready</span></td>
+                                    <td>
+                                        <button class="btn btn-success btn-sm">Pay Now</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Settings Page -->
+            <div class="page" id="page-settings">
+                <div class="content">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Platform Settings</h2>
+                            <button class="btn btn-primary">Save Changes</button>
+                        </div>
+                        <div style="padding: 24px;">
+                            <div class="info-grid" style="margin-bottom: 32px;">
+                                <div class="form-group">
+                                    <label class="form-label">Platform Fee (%)</label>
+                                    <input type="number" class="form-input" value="3.5" step="0.1">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Minimum Payout (SOL)</label>
+                                    <input type="number" class="form-input" value="0.5" step="0.1">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Minimum Payout (USDC)</label>
+                                    <input type="number" class="form-input" value="10" step="1">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Payout Hold Period (Days)</label>
+                                    <input type="number" class="form-input" value="7" step="1">
+                                </div>
+                            </div>
+                            
+                            <h3 style="margin-bottom: 16px;">Auto Payout Settings</h3>
+                            <div class="info-grid">
+                                <div class="form-group">
+                                    <label class="form-label">Enable Auto Payouts</label>
+                                    <select class="form-select">
+                                        <option value="true">Enabled</option>
+                                        <option value="false">Disabled</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Payout Schedule</label>
+                                    <select class="form-select">
+                                        <option value="daily">Daily</option>
+                                        <option value="weekly" selected>Weekly (Monday)</option>
+                                        <option value="biweekly">Bi-weekly</option>
+                                        <option value="monthly">Monthly</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Other pages can be added similarly -->
+            <div class="page" id="page-orders"><div class="content"><div class="card"><div class="card-header"><h2 class="card-title">Orders Management</h2></div><div class="chart-placeholder">Orders table coming soon...</div></div></div></div>
+            <div class="page" id="page-users"><div class="content"><div class="card"><div class="card-header"><h2 class="card-title">User Management</h2></div><div class="chart-placeholder">Users table coming soon...</div></div></div></div>
+            <div class="page" id="page-merchants"><div class="content"><div class="card"><div class="card-header"><h2 class="card-title">Merchant Management</h2></div><div class="chart-placeholder">Merchants table coming soon...</div></div></div></div>
+            <div class="page" id="page-analytics"><div class="content"><div class="card"><div class="card-header"><h2 class="card-title">Analytics Dashboard</h2></div><div class="chart-placeholder">Charts and analytics coming soon...</div></div></div></div>
+        </main>
+    </div>
+    
+    <!-- Store Review Modal -->
+    <div class="modal-overlay" id="storeModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Review Store Application</h2>
+                <button class="modal-close" onclick="closeStoreModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="item-info" style="margin-bottom: 24px;">
+                    <div class="item-image" style="background: #7c3aed; width: 64px; height: 64px; font-size: 24px;">🎨</div>
+                    <div class="item-details">
+                        <span class="item-name" style="font-size: 18px;">NFT Merch Co</span>
+                        <span class="item-meta">Applied 2 hours ago</span>
+                    </div>
+                </div>
+                
+                <div class="info-grid" style="margin-bottom: 24px;">
+                    <div class="info-item">
+                        <div class="info-label">Owner</div>
+                        <div class="info-value">nftlover.sol</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Wallet</div>
+                        <div class="info-value" style="font-size: 12px; font-family: monospace;">Gh7xK9...m3kPq</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Category</div>
+                        <div class="info-value">Art & Collectibles</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Business Type</div>
+                        <div class="info-value">Individual</div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Store Description</label>
+                    <div style="background: var(--bg-card); padding: 12px 16px; border-radius: 8px; font-size: 14px; color: var(--text-secondary);">
+                        Premium NFT-themed merchandise and collectibles. We create high-quality apparel and accessories inspired by popular NFT collections on Solana.
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Social Links</label>
+                    <div style="display: flex; gap: 8px;">
+                        <span style="background: var(--bg-card); padding: 6px 12px; border-radius: 6px; font-size: 13px;">twitter.com/nftmerchco</span>
+                        <span style="background: var(--bg-card); padding: 6px 12px; border-radius: 6px; font-size: 13px;">discord.gg/nftmerch</span>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Admin Notes (Optional)</label>
+                    <textarea class="form-textarea" placeholder="Add notes about this application..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Rejection Reason (if rejecting)</label>
+                    <select class="form-select">
+                        <option value="">Select a reason...</option>
+                        <option value="incomplete">Incomplete application</option>
+                        <option value="inappropriate">Inappropriate content</option>
+                        <option value="duplicate">Duplicate store</option>
+                        <option value="fraud">Suspected fraud</option>
+                        <option value="other">Other (specify in notes)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeStoreModal()">Cancel</button>
+                <button class="btn btn-danger">Reject</button>
+                <button class="btn btn-success">Approve Store</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Product Review Modal -->
+    <div class="modal-overlay" id="productModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Review Product</h2>
+                <button class="modal-close" onclick="closeProductModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div style="display: flex; gap: 24px; margin-bottom: 24px;">
+                    <div style="width: 150px; height: 150px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); border-radius: 12px;"></div>
+                    <div style="flex: 1;">
+                        <h3 style="margin-bottom: 8px;">SOL Hoodie - Limited Edition</h3>
+                        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">Premium quality hoodie with embroidered Solana logo. Available in multiple sizes.</p>
+                        <div style="display: flex; gap: 16px;">
+                            <div>
+                                <div style="font-size: 12px; color: var(--text-muted);">Price</div>
+                                <div style="font-weight: 600;">0.45 SOL</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 12px; color: var(--text-muted);">Inventory</div>
+                                <div style="font-weight: 600;">250 units</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 12px; color: var(--text-muted);">Store</div>
+                                <div style="font-weight: 600;">Crypto Merch</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="info-grid" style="margin-bottom: 24px;">
+                    <div class="info-item">
+                        <div class="info-label">Product Type</div>
+                        <div class="info-value">Physical</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Category</div>
+                        <div class="info-value">Apparel</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Variants</div>
+                        <div class="info-value">S, M, L, XL, XXL</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Weight</div>
+                        <div class="info-value">450g</div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Rejection Reason (if rejecting)</label>
+                    <select class="form-select">
+                        <option value="">Select a reason...</option>
+                        <option value="quality">Low quality images</option>
+                        <option value="description">Insufficient description</option>
+                        <option value="pricing">Unreasonable pricing</option>
+                        <option value="copyright">Copyright/trademark issue</option>
+                        <option value="inappropriate">Inappropriate content</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeProductModal()">Cancel</button>
+                <button class="btn btn-danger">Reject</button>
+                <button class="btn btn-success">Approve Product</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Page Navigation
+        function showPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // Show selected page
+            document.getElementById('page-' + pageId).classList.add('active');
+            
+            // Update sidebar
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+            
+            // Update header title
+            const titles = {
+                'dashboard': 'Dashboard',
+                'analytics': 'Analytics',
+                'stores': 'Store Management',
+                'products': 'Product Management',
+                'orders': 'Orders',
+                'payouts': 'Payouts',
+                'users': 'User Management',
+                'merchants': 'Merchant Management',
+                'settings': 'Platform Settings'
+            };
+            document.getElementById('pageTitle').textContent = titles[pageId] || 'Dashboard';
+        }
+        
+        // Modal Functions
+        function openStoreModal() {
+            document.getElementById('storeModal').classList.add('active');
+        }
+        
+        function closeStoreModal() {
+            document.getElementById('storeModal').classList.remove('active');
+        }
+        
+        function openProductModal() {
+            document.getElementById('productModal').classList.add('active');
+        }
+        
+        function closeProductModal() {
+            document.getElementById('productModal').classList.remove('active');
+        }
+        
+        // Close modals on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                }
+            });
+        });
+        
+        // Escape key to close modals
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay').forEach(modal => {
+                    modal.classList.remove('active');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

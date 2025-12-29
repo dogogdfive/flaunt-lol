@@ -1,0 +1,2075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>store.lol | Merch Marketplace on Solana</title>
+    
+    <!-- Privy SDK -->
+    <script src="https://cdn.privy.io/privy-browser.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: #0f1629;
+            --bg-modal: #0c1222;
+            --border-color: #1f2937;
+            --text-primary: #ffffff;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --blue-primary: #3b82f6;
+            --blue-hover: #2563eb;
+            --green-primary: #10b981;
+            --green-dark: #059669;
+            --yellow-primary: #eab308;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        /* Header */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--bg-primary);
+            border-bottom: 1px solid rgba(31, 41, 55, 0.5);
+        }
+        
+        .header-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+        
+        .logo-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899);
+            position: relative;
+        }
+        
+        .logo-icon::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            opacity: 0.9;
+        }
+        
+        .logo-text {
+            color: white;
+            font-weight: 700;
+            font-size: 18px;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+        
+        .how-it-works {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .how-it-works:hover {
+            color: var(--text-primary);
+        }
+        
+        .search-bar {
+            flex: 1;
+            max-width: 560px;
+        }
+        
+        .search-input {
+            width: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 10px 16px 10px 44px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: 16px center;
+        }
+        
+        .search-input::placeholder {
+            color: var(--text-muted);
+        }
+        
+        .search-input:focus {
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .currency-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-secondary);
+            border-radius: 24px;
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .currency-label {
+            font-size: 12px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        
+        .currency-label.active { color: white; }
+        .currency-label.inactive { color: var(--text-muted); }
+        
+        .toggle-switch {
+            width: 44px;
+            height: 24px;
+            background: var(--blue-primary);
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            top: 4px;
+            right: 4px;
+            transition: transform 0.2s;
+        }
+        
+        .toggle-switch.usdc::after {
+            transform: translateX(-20px);
+        }
+        
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        
+        .icon-btn:hover {
+            color: white;
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .connect-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--blue-primary);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .connect-btn:hover {
+            background: var(--blue-hover);
+        }
+        
+        .connect-btn.connected {
+            background: var(--green-primary);
+        }
+        
+        .wallet-address {
+            font-family: monospace;
+            font-size: 13px;
+        }
+        
+        /* Main Content */
+        .main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+        
+        /* Hero Carousel */
+        .hero-carousel {
+            position: relative;
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 40px;
+            background: linear-gradient(135deg, #7f1d1d, #92400e, #78350f);
+            height: 420px;
+            transition: background 0.8s ease-in-out;
+        }
+        
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 40%, transparent 70%);
+        }
+        
+        .hero-badge {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: var(--green-primary);
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 20px;
+            z-index: 2;
+        }
+        
+        .hero-content {
+            position: absolute;
+            bottom: 32px;
+            left: 32px;
+            z-index: 2;
+        }
+        
+        .hero-title {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: opacity 0.3s ease;
+        }
+        
+        .hero-badge {
+            transition: opacity 0.3s ease;
+        }
+        
+        .verified-badge {
+            width: 24px;
+            height: 24px;
+            background: var(--blue-primary);
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .verified-badge::after {
+            content: '✓';
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .verified-badge.small {
+            width: 16px;
+            height: 16px;
+        }
+        
+        .verified-badge.small::after {
+            font-size: 10px;
+        }
+        
+        .hero-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            color: black;
+            font-weight: 600;
+            padding: 12px 24px;
+            border-radius: 24px;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        
+        .hero-btn:hover {
+            background: #f3f4f6;
+        }
+        
+        .carousel-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            background: rgba(0,0,0,0.5);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+            transition: background 0.2s;
+        }
+        
+        .carousel-nav:hover {
+            background: rgba(0,0,0,0.7);
+        }
+        
+        .carousel-nav.prev { left: 16px; }
+        .carousel-nav.next { right: 16px; }
+        
+        .carousel-dots {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 2;
+        }
+        
+        .carousel-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.4);
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .carousel-dot.active {
+            background: white;
+            width: 20px;
+        }
+        
+        /* Product Sections */
+        .section {
+            margin-bottom: 48px;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        .section-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+        
+        .section-link:hover {
+            color: white;
+        }
+        
+        .products-row {
+            display: flex;
+            gap: 16px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            scroll-behavior: smooth;
+            position: relative;
+        }
+        
+        .products-row::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .product-card {
+            flex-shrink: 0;
+            width: 175px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-4px);
+        }
+        
+        .product-image {
+            width: 100%;
+            aspect-ratio: 1;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .product-image-inner {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .product-indicator {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            width: 14px;
+            height: 14px;
+            background: var(--blue-primary);
+            transform: rotate(45deg);
+            border-radius: 2px;
+        }
+        
+        .product-name {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .product-creator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        
+        .creator-name {
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .creator-badge {
+            width: 14px;
+            height: 14px;
+            background: var(--yellow-primary);
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .creator-badge::after {
+            content: '✓';
+            color: white;
+            font-size: 8px;
+            font-weight: bold;
+        }
+        
+        .product-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .product-price {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .product-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--blue-primary);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .product-btn:hover {
+            background: var(--blue-hover);
+        }
+        
+        /* Collections Grid */
+        .collections-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .filter-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 16px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .filter-btn:hover {
+            background: var(--bg-card);
+            color: white;
+        }
+        
+        .collections-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+        
+        @media (max-width: 900px) {
+            .collections-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        
+        @media (max-width: 600px) {
+            .collections-grid { grid-template-columns: 1fr; }
+        }
+        
+        .collection-card {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .collection-card:hover {
+            transform: translateY(-4px);
+        }
+        
+        .collection-image {
+            aspect-ratio: 4/3;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .collection-badge {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            background: var(--green-primary);
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 16px;
+        }
+        
+        .collection-badge.purple {
+            background: #7c3aed;
+        }
+        
+        .collection-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+        
+        .collection-name {
+            font-weight: 600;
+            font-size: 15px;
+        }
+        
+        .collection-desc {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 8px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .collection-link {
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: color 0.2s;
+        }
+        
+        .collection-link:hover {
+            color: var(--blue-primary);
+        }
+        
+        .collection-link.green {
+            color: var(--green-primary);
+        }
+        
+        /* Footer */
+        .footer {
+            border-top: 1px solid var(--border-color);
+            padding: 24px;
+            margin-top: 64px;
+        }
+        
+        .footer-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .footer-logo-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899);
+        }
+        
+        .footer-logo-text {
+            font-weight: 700;
+            font-size: 14px;
+        }
+        
+        .footer-copyright {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+        
+        .footer-nav {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+        
+        .footer-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+        
+        .footer-link:hover {
+            color: white;
+        }
+        
+        .footer-social {
+            display: flex;
+            gap: 16px;
+        }
+        
+        .footer-social a {
+            color: var(--text-muted);
+            transition: color 0.2s;
+        }
+        
+        .footer-social a:hover {
+            color: white;
+        }
+        
+        /* ==================== */
+        /* PRODUCT DETAIL MODAL */
+        /* ==================== */
+        .product-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            backdrop-filter: blur(8px);
+        }
+        
+        .product-modal-overlay.active {
+            display: flex;
+        }
+        
+        .product-modal {
+            background: var(--bg-modal);
+            border-radius: 16px;
+            max-width: 720px;
+            width: 100%;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            border: 1px solid var(--border-color);
+        }
+        
+        @media (max-width: 768px) {
+            .product-modal {
+                flex-direction: column;
+                max-height: 95vh;
+                overflow-y: auto;
+            }
+        }
+        
+        .product-modal-image {
+            width: 50%;
+            background: var(--bg-secondary);
+            position: relative;
+            min-height: 400px;
+            overflow: hidden;
+        }
+        
+        @media (max-width: 768px) {
+            .product-modal-image {
+                width: 100%;
+                min-height: 300px;
+            }
+        }
+        
+        .product-modal-image-track {
+            display: flex;
+            height: 100%;
+            transition: transform 0.3s ease-in-out;
+        }
+        
+        .product-modal-image-slide {
+            min-width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .product-modal-image-inner {
+            width: 200px;
+            height: 200px;
+            border-radius: 16px;
+        }
+        
+        .modal-image-counter {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: white;
+        }
+        
+        .modal-image-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 36px;
+            height: 36px;
+            background: rgba(0, 0, 0, 0.6);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-image-nav:hover {
+            background: rgba(0, 0, 0, 0.8);
+        }
+        
+        .modal-image-nav.prev { left: 12px; }
+        .modal-image-nav.next { right: 12px; }
+        
+        .modal-image-dots {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+        }
+        
+        .modal-image-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.4);
+            border: none;
+            cursor: pointer;
+        }
+        
+        .modal-image-dot.active {
+            background: white;
+        }
+        
+        .product-modal-details {
+            width: 50%;
+            padding: 24px;
+            overflow-y: auto;
+            max-height: 90vh;
+        }
+        
+        @media (max-width: 768px) {
+            .product-modal-details {
+                width: 100%;
+                max-height: none;
+            }
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 4px;
+        }
+        
+        .modal-collection {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .modal-action-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 6px;
+        }
+        
+        .modal-action-btn:hover {
+            color: white;
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .modal-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        
+        .modal-description {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        
+        .modal-price-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .modal-price {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        .modal-available {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .modal-connect-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: var(--blue-primary);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .modal-connect-btn:hover {
+            background: var(--blue-hover);
+        }
+        
+        .modal-icon-btn {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .modal-icon-btn:hover {
+            color: white;
+            background: var(--bg-card);
+        }
+        
+        /* Bonding Curve */
+        .bonding-curve {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .bonding-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .bonding-label {
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .bonding-label .info {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+        
+        .bonding-value {
+            color: var(--green-primary);
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .bonding-bar {
+            height: 8px;
+            background: var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+        
+        .bonding-progress {
+            height: 100%;
+            background: var(--green-primary);
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+        
+        .bonding-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+        
+        .bonding-info .left {
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .bonding-info .right {
+            color: var(--green-primary);
+        }
+        
+        .bonding-total {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+        
+        .bonding-total .label {
+            color: var(--text-muted);
+        }
+        
+        .bonding-total .value {
+            color: white;
+        }
+        
+        /* Category & Eligibility */
+        .category-section {
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+        
+        .category-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        
+        .category-card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 16px;
+        }
+        
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .category-icon {
+            width: 12px;
+            height: 12px;
+            background: var(--green-primary);
+            border-radius: 2px;
+        }
+        
+        .category-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .category-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--green-primary);
+            font-size: 12px;
+            font-weight: 500;
+            padding: 4px 10px;
+            border-radius: 12px;
+            margin-left: auto;
+        }
+        
+        .category-desc {
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+        
+        .eligibility-title {
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .eligibility-rule {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+        
+        /* Wallet Modal */
+        .wallet-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 300;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            backdrop-filter: blur(8px);
+        }
+        
+        .wallet-modal-overlay.active {
+            display: flex;
+        }
+        
+        .wallet-modal {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            max-width: 400px;
+            width: 100%;
+            padding: 28px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .wallet-modal-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        
+        .wallet-modal-icon {
+            width: 56px;
+            height: 56px;
+            background: var(--blue-primary);
+            border-radius: 16px;
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .wallet-modal-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        .wallet-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .wallet-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 14px 16px;
+            color: white;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            transition: all 0.2s;
+        }
+        
+        .wallet-option:hover {
+            background: var(--bg-card);
+            border-color: var(--text-muted);
+        }
+        
+        .wallet-option-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        
+        .wallet-option-icon.brave { background: linear-gradient(135deg, #ff5500, #ff3300); }
+        .wallet-option-icon.phantom { background: linear-gradient(135deg, #ab9ff2, #7c3aed); }
+        .wallet-option-icon.oneinch { background: #1a5fff; font-weight: bold; color: white; }
+        .wallet-option-icon.other { background: #4b5563; }
+        
+        .wallet-option-name {
+            font-weight: 500;
+            flex: 1;
+        }
+        
+        .wallet-option-arrow {
+            color: var(--text-muted);
+        }
+        
+        .wallet-modal-footer {
+            text-align: center;
+            margin-top: 24px;
+            color: var(--text-muted);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        
+        .privy-text {
+            color: white;
+            font-weight: 600;
+        }
+        
+        /* Sidebar */
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 150;
+            display: none;
+            backdrop-filter: blur(4px);
+        }
+        
+        .sidebar-overlay.active {
+            display: block;
+        }
+        
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: -300px;
+            width: 300px;
+            height: 100%;
+            background: var(--bg-primary);
+            border-left: 1px solid var(--border-color);
+            z-index: 151;
+            padding: 24px;
+            transition: right 0.3s ease;
+            overflow-y: auto;
+        }
+        
+        .sidebar.active {
+            right: 0;
+        }
+        
+        .sidebar-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+        }
+        
+        .sidebar-close:hover {
+            color: white;
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .sidebar-nav {
+            margin-top: 48px;
+        }
+        
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 16px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .sidebar-item:hover {
+            background: rgba(255,255,255,0.05);
+            color: white;
+        }
+        
+        .sidebar-item-icon {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+        
+        .sidebar-cta {
+            width: 100%;
+            background: var(--green-primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            margin-top: 24px;
+            transition: background 0.2s;
+        }
+        
+        .sidebar-cta:hover {
+            background: var(--green-dark);
+        }
+        
+        .sidebar-social {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .sidebar-social a {
+            color: var(--text-muted);
+            transition: color 0.2s;
+        }
+        
+        .sidebar-social a:hover {
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-inner">
+            <div class="header-left">
+                <a href="#" class="logo">
+                    <div class="logo-icon"></div>
+                    <span class="logo-text">store.lol</span>
+                </a>
+                <a href="#" class="how-it-works">[how it works]</a>
+            </div>
+            
+            <div class="search-bar">
+                <input type="text" class="search-input" placeholder="Search collections and products...">
+            </div>
+            
+            <div class="header-right">
+                <div class="currency-toggle">
+                    <span class="currency-label inactive" id="usdcLabel">USDC</span>
+                    <button class="toggle-switch" id="currencyToggle" onclick="toggleCurrency()"></button>
+                    <span class="currency-label active" id="solLabel">SOL</span>
+                </div>
+                
+                <button class="icon-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                    </svg>
+                </button>
+                
+                <button class="connect-btn" id="connectBtn" onclick="openWalletModal()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 10H2"/>
+                    </svg>
+                    <span id="connectBtnText">Connect Wallet</span>
+                </button>
+                
+                <button class="icon-btn" onclick="openSidebar()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="main">
+        <!-- Hero Carousel -->
+        <div class="hero-carousel" id="heroCarousel">
+            <div class="hero-overlay"></div>
+            <span class="hero-badge" id="heroBadge">New Drop</span>
+            <div class="hero-content">
+                <h1 class="hero-title" id="heroTitle">
+                    Scroto Schizos: Scrotoshis
+                    <span class="verified-badge"></span>
+                </h1>
+                <a href="#" class="hero-btn">
+                    View Collection
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="m9 18 6-6-6-6"/>
+                    </svg>
+                </a>
+            </div>
+            
+            <button class="carousel-nav prev">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="m15 18-6-6 6-6"/>
+                </svg>
+            </button>
+            <button class="carousel-nav next">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="m9 18 6-6-6-6"/>
+                </svg>
+            </button>
+            
+            <div class="carousel-dots">
+                <button class="carousel-dot active"></button>
+                <button class="carousel-dot"></button>
+                <button class="carousel-dot"></button>
+                <button class="carousel-dot"></button>
+                <button class="carousel-dot"></button>
+                <button class="carousel-dot"></button>
+                <button class="carousel-dot"></button>
+                <button class="carousel-dot"></button>
+                <button class="carousel-dot"></button>
+                <button class="carousel-dot"></button>
+                <button class="carousel-dot"></button>
+            </div>
+        </div>
+        
+        <!-- Best Sellers -->
+        <section class="section">
+            <div class="section-header">
+                <h2 class="section-title">Best Sellers</h2>
+                <a href="#" class="section-link">See All</a>
+            </div>
+            <div class="products-row" id="bestSellersRow">
+                <!-- Products will be generated by JS -->
+            </div>
+        </section>
+        
+        <!-- New Products -->
+        <section class="section">
+            <div class="section-header">
+                <h2 class="section-title">New Products</h2>
+                <a href="#" class="section-link">See All</a>
+            </div>
+            <div class="products-row" id="newProductsRow">
+                <!-- Products will be generated by JS -->
+            </div>
+        </section>
+        
+        <!-- Latest Drops -->
+        <section class="section">
+            <div class="collections-header">
+                <h2 class="section-title">Latest Drops</h2>
+                <button class="filter-btn">
+                    All Merchants
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m6 9 6 6 6-6"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="collections-grid" id="collectionsGrid">
+                <!-- Collections will be generated by JS -->
+            </div>
+        </section>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-logo">
+                <div class="footer-logo-icon"></div>
+                <span class="footer-logo-text">store.lol</span>
+                <span class="footer-copyright">© 2025</span>
+            </div>
+            
+            <nav class="footer-nav">
+                <a href="#" class="footer-link">Merchant Portal</a>
+                <a href="#" class="footer-link">Privacy Policy</a>
+                <a href="#" class="footer-link">Terms of Use</a>
+                <a href="#" class="footer-link">Returns & FAQ</a>
+                <a href="#" class="footer-link">Support</a>
+            </nav>
+            
+            <div class="footer-social">
+                <a href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+                <a href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg></a>
+                <a href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></a>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Product Detail Modal -->
+    <div class="product-modal-overlay" id="productModal">
+        <div class="product-modal">
+            <div class="product-modal-image">
+                <div class="modal-image-counter"><span id="currentSlide">1</span> / <span id="totalSlides">3</span></div>
+                <div class="product-modal-image-track" id="imageTrack">
+                    <div class="product-modal-image-slide">
+                        <div class="product-modal-image-inner" id="modalProductImage"></div>
+                    </div>
+                    <div class="product-modal-image-slide">
+                        <div class="product-modal-image-inner" id="modalProductImage2"></div>
+                    </div>
+                    <div class="product-modal-image-slide">
+                        <div class="product-modal-image-inner" id="modalProductImage3"></div>
+                    </div>
+                </div>
+                <button class="modal-image-nav prev" onclick="prevModalImage()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m15 18-6-6 6-6"/>
+                    </svg>
+                </button>
+                <button class="modal-image-nav next" onclick="nextModalImage()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m9 18 6-6-6-6"/>
+                    </svg>
+                </button>
+                <div class="modal-image-dots" id="imageDots">
+                    <button class="modal-image-dot active" onclick="goToModalImage(0)"></button>
+                    <button class="modal-image-dot" onclick="goToModalImage(1)"></button>
+                    <button class="modal-image-dot" onclick="goToModalImage(2)"></button>
+                </div>
+            </div>
+            
+            <div class="product-modal-details">
+                <div class="modal-header">
+                    <div class="modal-collection">
+                        <span id="modalCollection">Collection Name</span>
+                        <span class="verified-badge small"></span>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="modal-action-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16,6 12,2 8,6"/><line x1="12" y1="2" x2="12" y2="15"/>
+                            </svg>
+                        </button>
+                        <button class="modal-action-btn" onclick="closeProductModal()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 6 6 18M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <h2 class="modal-title" id="modalTitle">Product Name</h2>
+                <p class="modal-description" id="modalDescription">Product description goes here</p>
+                
+                <div class="modal-price-row">
+                    <span class="modal-price" id="modalPrice">0.00 SOL</span>
+                    <span class="modal-available">100 available</span>
+                </div>
+                
+                <div class="modal-buttons">
+                    <button class="modal-connect-btn" onclick="openWalletModal()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 10H2"/>
+                        </svg>
+                        Connect
+                    </button>
+                    <button class="modal-icon-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+                        </svg>
+                    </button>
+                    <button class="modal-icon-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="bonding-curve">
+                    <div class="bonding-header">
+                        <span class="bonding-label">Bonding Curve <span class="info">ⓘ</span></span>
+                        <span class="bonding-value" id="bondingValue">0 / 100</span>
+                    </div>
+                    <div class="bonding-bar">
+                        <div class="bonding-progress" id="bondingProgress" style="width: 0%"></div>
+                    </div>
+                    <div class="bonding-info">
+                        <span class="left">No minimum order quantity <span class="info">ⓘ</span></span>
+                        <span class="right">Ready to ship ✓</span>
+                    </div>
+                    <div class="bonding-total">
+                        <span class="label">Total progress:</span>
+                        <span class="value" id="bondingTotal">0 / 100</span>
+                    </div>
+                </div>
+                
+                <div class="category-section">
+                    <h3 class="category-title">Category & Eligibility</h3>
+                    <div class="category-card">
+                        <div class="category-header">
+                            <div class="category-icon"></div>
+                            <span class="category-name" id="categoryName">Category</span>
+                            <span class="category-badge">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707"/>
+                                </svg>
+                                Open Access
+                            </span>
+                        </div>
+                        <p class="category-desc" id="categoryDesc">Category description</p>
+                        <p class="eligibility-title">Eligibility Rules:</p>
+                        <p class="eligibility-rule">• This category is open to all collectors</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Wallet Modal -->
+    <div class="wallet-modal-overlay" id="walletModal">
+        <div class="wallet-modal">
+            <div class="wallet-modal-header">
+                <div class="wallet-modal-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                        <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 10H2"/>
+                    </svg>
+                </div>
+                <h2 class="wallet-modal-title">Log in or sign up</h2>
+            </div>
+            
+            <div class="wallet-options">
+                <button class="wallet-option" onclick="connectWallet('brave')">
+                    <span class="wallet-option-icon brave">🦁</span>
+                    <span class="wallet-option-name">Brave Wallet</span>
+                </button>
+                <button class="wallet-option" onclick="connectWallet('phantom')">
+                    <span class="wallet-option-icon phantom">👻</span>
+                    <span class="wallet-option-name">Phantom</span>
+                </button>
+                <button class="wallet-option" onclick="connectWallet('oneinch')">
+                    <span class="wallet-option-icon oneinch">1</span>
+                    <span class="wallet-option-name">1inch Wallet</span>
+                </button>
+                <button class="wallet-option" onclick="connectWallet('other')">
+                    <span class="wallet-option-icon other">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <rect x="2" y="4" width="20" height="16" rx="2"/>
+                        </svg>
+                    </span>
+                    <span class="wallet-option-name">Other wallets</span>
+                    <svg class="wallet-option-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m9 18 6-6-6-6"/>
+                    </svg>
+                </button>
+                <button class="wallet-option" onclick="connectWithEmail()">
+                    <span class="wallet-option-icon other">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/>
+                        </svg>
+                    </span>
+                    <span class="wallet-option-name">Log in with email or socials</span>
+                    <svg class="wallet-option-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m9 18 6-6-6-6"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="wallet-modal-footer">
+                Protected by <span class="privy-text">● privy</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <div class="sidebar" id="sidebar">
+        <button class="sidebar-close" onclick="closeSidebar()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6 6 18M6 6l12 12"/>
+            </svg>
+        </button>
+        
+        <nav class="sidebar-nav">
+            <a href="#" class="sidebar-item"><span class="sidebar-item-icon">📦</span>Orders</a>
+            <a href="#" class="sidebar-item"><span class="sidebar-item-icon">🎁</span>Gift Cards</a>
+            <a href="#" class="sidebar-item"><span class="sidebar-item-icon">✨</span>FUN+</a>
+            <a href="#" class="sidebar-item"><span class="sidebar-item-icon">💰</span>Affiliate Program</a>
+            <a href="#" class="sidebar-item"><span class="sidebar-item-icon">❓</span>How it Works</a>
+            <a href="#" class="sidebar-item"><span class="sidebar-item-icon">↩️</span>Returns & FAQ</a>
+            <a href="#" class="sidebar-item"><span class="sidebar-item-icon">📋</span>Terms of Use</a>
+            <a href="#" class="sidebar-item"><span class="sidebar-item-icon">🔒</span>Privacy Policy</a>
+            <a href="#" class="sidebar-item"><span class="sidebar-item-icon">💬</span>Support</a>
+        </nav>
+        
+        <button class="sidebar-cta">Launch Store</button>
+        
+        <div class="sidebar-social">
+            <a href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+            <a href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg></a>
+            <a href="#"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></a>
+        </div>
+    </div>
+    
+    <script>
+        // Hero Carousel Data
+        const heroSlides = [
+            { id: 1, name: 'Scroto Schizos: Scrotoshis', verified: true, isNew: true, gradient: 'linear-gradient(135deg, #7f1d1d, #92400e, #78350f)' },
+            { id: 2, name: 'CHILLHOUSE', verified: true, isNew: false, gradient: 'linear-gradient(135deg, #1e3a5f, #312e81, #1e1b4b)' },
+            { id: 3, name: 'chudjak', verified: true, isNew: true, gradient: 'linear-gradient(135deg, #374151, #1f2937, #111827)' },
+            { id: 4, name: 'Housecoin Owners Association', verified: false, isNew: true, gradient: 'linear-gradient(135deg, #b45309, #92400e, #78350f)' },
+            { id: 5, name: 'TOKABU', verified: true, isNew: true, gradient: 'linear-gradient(135deg, #065f46, #047857, #059669)' },
+            { id: 6, name: 'Memecoins', verified: false, isNew: true, gradient: 'linear-gradient(135deg, #7c3aed, #6d28d9, #5b21b6)' },
+            { id: 7, name: 'SOL DRIP', verified: true, isNew: false, gradient: 'linear-gradient(135deg, #0891b2, #0e7490, #155e75)' },
+            { id: 8, name: 'Subliminal Twelve Twenty', verified: false, isNew: true, gradient: 'linear-gradient(135deg, #1e3a5f, #1e1b4b, #0f172a)' },
+            { id: 9, name: 'PUMP Merch', verified: true, isNew: true, gradient: 'linear-gradient(135deg, #be185d, #9d174d, #831843)' },
+            { id: 10, name: 'Unhinged Collection', verified: false, isNew: true, gradient: 'linear-gradient(135deg, #525252, #404040, #262626)' },
+            { id: 11, name: 'SNS Domains', verified: true, isNew: false, gradient: 'linear-gradient(135deg, #4f46e5, #4338ca, #3730a3)' },
+        ];
+        
+        let currentSlide = 0;
+        let slideInterval;
+        
+        // Product Data
+        const bestSellers = [
+            { id: 1, name: 'Chillhouse Plushie', creator: 'CHILLHOUSE', price: '0.31', verified: true, color: '#8B7355' },
+            { id: 2, name: 'alon Plushie', creator: 'PUMP', price: '0.29', verified: true, color: '#F5DEB3' },
+            { id: 3, name: 'Tokabu Hoodie (Triton...', creator: 'TOKABU', price: '0.4', verified: true, color: '#1a1a1a' },
+            { id: 4, name: 'Tokabu T-Shirt', creator: 'TOKABU', price: '0.25', verified: true, color: '#FFFFFF' },
+            { id: 5, name: 'Customized .sol Hoodie', creator: 'SNS', price: '0.32', verified: true, color: '#ADFF2F' },
+            { id: 6, name: 'Divinelu Protected T-Shirt', creator: 'TOKABU', price: '0.25', verified: true, color: '#E8E8E8' },
+        ];
+        
+        const newProducts = [
+            { id: 7, name: 'Graffiti hoodie', creator: 'Housecoin Owners...', price: '0.43', verified: false, color: '#4a4a4a' },
+            { id: 8, name: 'Graffiti tee', creator: 'Housecoin Owners...', price: '0.33', verified: false, color: '#FFFFFF' },
+            { id: 9, name: 'Scroto Schizo Plushie', creator: 'Scroto Schizos: Scrotoshis', price: '0.41', verified: true, color: '#5DADE2' },
+            { id: 10, name: 'Tokabu Plushie', creator: 'TOKABU', price: '0.5', verified: true, color: '#D2691E' },
+            { id: 11, name: '$CHILLHOUSE woolly', creator: 'Woolfun', price: '2', verified: true, color: '#DEB887' },
+            { id: 12, name: 'Technology T-shirt', creator: 'Unhinged and selling...', price: '0.33', verified: false, color: '#1a1a2e' },
+        ];
+        
+        const collections = [
+            { id: 1, name: 'BITDOT', desc: '📅 Jan 1, 2026', verified: false, isNew: false, comingSoon: true, color: '#7c3aed' },
+            { id: 2, name: 'Scroto Schizos: Scrotoshis', desc: 'The first edition collection of Scroto Schizo plushies', verified: true, isNew: true, color: '#dc2626' },
+            { id: 3, name: 'Unhinged and selling anything', desc: 'Idk bro stop asking me', verified: false, isNew: true, color: '#374151' },
+            { id: 4, name: 'chudjak', desc: 'billions must buy merch', verified: true, isNew: true, color: '#e5e7eb', linkGreen: true },
+            { id: 5, name: 'Memecoins', desc: 'Collections of memecoin themed t-shirts', verified: false, isNew: true, color: '#FFFFFF' },
+            { id: 6, name: 'Subliminal Twelve Twenty', desc: 'stillness', verified: false, isNew: true, color: '#1e3a5f' },
+        ];
+        
+        // Render Products
+        function renderProducts(containerId, products) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = products.map(p => `
+                <div class="product-card" onclick="openProductModal(${JSON.stringify(p).replace(/"/g, '&quot;')})">
+                    <div class="product-image">
+                        <div class="product-image-inner" style="background: linear-gradient(135deg, ${p.color}, ${adjustColor(p.color, -20)})"></div>
+                        <div class="product-indicator"></div>
+                    </div>
+                    <div class="product-name">${p.name}</div>
+                    <div class="product-creator">
+                        <span class="creator-name">${p.creator}</span>
+                        ${p.verified ? '<span class="creator-badge"></span>' : ''}
+                    </div>
+                    <div class="product-footer">
+                        <span class="product-price">${p.price} SOL</span>
+                        <button class="product-btn" onclick="event.stopPropagation(); openWalletModal()">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="4" width="20" height="16" rx="2"/>
+                            </svg>
+                            Connect
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Render Collections
+        function renderCollections() {
+            const container = document.getElementById('collectionsGrid');
+            container.innerHTML = collections.map(c => `
+                <div class="collection-card">
+                    <div class="collection-image" style="background: linear-gradient(135deg, ${c.color}, ${adjustColor(c.color, -30)})">
+                        ${c.comingSoon ? '<span class="collection-badge purple">Coming Soon</span>' : (c.isNew ? '<span class="collection-badge">New Drop</span>' : '')}
+                    </div>
+                    <div class="collection-header">
+                        <span class="collection-name">${c.name}</span>
+                        ${c.verified ? '<span class="verified-badge small"></span>' : ''}
+                    </div>
+                    <p class="collection-desc">${c.desc}</p>
+                    ${!c.comingSoon ? `
+                        <a href="#" class="collection-link ${c.linkGreen ? 'green' : ''}">
+                            Browse Collection
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="m9 18 6-6-6-6"/>
+                            </svg>
+                        </a>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+        
+        // Hero Carousel Functions
+        function renderCarousel() {
+            const carousel = document.getElementById('heroCarousel');
+            const slide = heroSlides[currentSlide];
+            const title = document.getElementById('heroTitle');
+            const badge = document.getElementById('heroBadge');
+            
+            // Fade out title
+            title.style.opacity = '0';
+            
+            setTimeout(() => {
+                // Update background with smooth transition
+                carousel.style.background = slide.gradient;
+                
+                // Update badge
+                badge.style.display = slide.isNew ? 'block' : 'none';
+                
+                // Update title
+                title.innerHTML = `
+                    ${slide.name}
+                    ${slide.verified ? '<span class="verified-badge"></span>' : ''}
+                `;
+                
+                // Fade in title
+                title.style.opacity = '1';
+            }, 300);
+            
+            // Update dots
+            const dots = document.querySelectorAll('.carousel-dot');
+            dots.forEach((dot, index) => {
+                dot.classList.toggle('active', index === currentSlide);
+            });
+        }
+        
+        function nextSlide() {
+            currentSlide = (currentSlide + 1) % heroSlides.length;
+            renderCarousel();
+        }
+        
+        function prevSlide() {
+            currentSlide = (currentSlide - 1 + heroSlides.length) % heroSlides.length;
+            renderCarousel();
+        }
+        
+        function goToSlide(index) {
+            currentSlide = index;
+            renderCarousel();
+            resetInterval();
+        }
+        
+        function startCarousel() {
+            slideInterval = setInterval(nextSlide, 5000); // Change slide every 5 seconds
+        }
+        
+        function resetInterval() {
+            clearInterval(slideInterval);
+            startCarousel();
+        }
+        
+        // Carousel navigation event listeners
+        document.querySelector('.carousel-nav.prev').addEventListener('click', () => {
+            prevSlide();
+            resetInterval();
+        });
+        
+        document.querySelector('.carousel-nav.next').addEventListener('click', () => {
+            nextSlide();
+            resetInterval();
+        });
+        
+        // Dot navigation
+        document.querySelectorAll('.carousel-dot').forEach((dot, index) => {
+            dot.addEventListener('click', () => goToSlide(index));
+        });
+        
+        // Color helper
+        function adjustColor(color, amount) {
+            if (color.startsWith('#')) {
+                let hex = color.slice(1);
+                let num = parseInt(hex, 16);
+                let r = Math.min(255, Math.max(0, (num >> 16) + amount));
+                let g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amount));
+                let b = Math.min(255, Math.max(0, (num & 0x0000FF) + amount));
+                return '#' + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1);
+            }
+            return color;
+        }
+        
+        // Product Modal Image Carousel
+        let currentModalImage = 0;
+        const totalModalImages = 3;
+        
+        function updateModalCarousel() {
+            const track = document.getElementById('imageTrack');
+            const dots = document.querySelectorAll('.modal-image-dot');
+            
+            // Slide the track
+            track.style.transform = `translateX(-${currentModalImage * 100}%)`;
+            
+            // Update dots
+            dots.forEach((dot, index) => {
+                dot.classList.toggle('active', index === currentModalImage);
+            });
+            
+            // Update counter
+            document.getElementById('currentSlide').textContent = currentModalImage + 1;
+        }
+        
+        function nextModalImage() {
+            currentModalImage = (currentModalImage + 1) % totalModalImages;
+            updateModalCarousel();
+        }
+        
+        function prevModalImage() {
+            currentModalImage = (currentModalImage - 1 + totalModalImages) % totalModalImages;
+            updateModalCarousel();
+        }
+        
+        function goToModalImage(index) {
+            currentModalImage = index;
+            updateModalCarousel();
+        }
+        
+        // Product Modal
+        function openProductModal(product) {
+            const modal = document.getElementById('productModal');
+            const progress = Math.floor(Math.random() * 80) + 10;
+            
+            // Reset carousel to first image
+            currentModalImage = 0;
+            updateModalCarousel();
+            
+            // Generate 3 different color variations for the carousel
+            const color1 = product.color;
+            const color2 = adjustColor(product.color, 20);
+            const color3 = adjustColor(product.color, -20);
+            
+            document.getElementById('modalProductImage').style.background = `linear-gradient(135deg, ${color1}, ${adjustColor(color1, -30)})`;
+            document.getElementById('modalProductImage2').style.background = `linear-gradient(135deg, ${color2}, ${adjustColor(color2, -30)})`;
+            document.getElementById('modalProductImage3').style.background = `linear-gradient(135deg, ${color3}, ${adjustColor(color3, -30)})`;
+            
+            document.getElementById('modalCollection').textContent = product.creator;
+            document.getElementById('modalTitle').textContent = product.name;
+            document.getElementById('modalDescription').textContent = `The first edition collection of ${product.name}`;
+            document.getElementById('modalPrice').textContent = `${product.price} SOL`;
+            document.getElementById('bondingValue').textContent = `${progress} / 100`;
+            document.getElementById('bondingTotal').textContent = `${progress} / 100`;
+            document.getElementById('bondingProgress').style.width = `${progress}%`;
+            document.getElementById('categoryName').textContent = product.creator;
+            document.getElementById('categoryDesc').textContent = `The first edition collection of ${product.name}`;
+            
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeProductModal() {
+            document.getElementById('productModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        
+        // Wallet Modal
+        function openWalletModal() {
+            document.getElementById('walletModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeWalletModal() {
+            document.getElementById('walletModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        
+        // Sidebar
+        function openSidebar() {
+            document.getElementById('sidebar').classList.add('active');
+            document.getElementById('sidebarOverlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('active');
+            document.getElementById('sidebarOverlay').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        
+        // Currency Toggle
+        let isSol = true;
+        function toggleCurrency() {
+            isSol = !isSol;
+            document.getElementById('currencyToggle').classList.toggle('usdc', !isSol);
+            document.getElementById('solLabel').classList.toggle('active', isSol);
+            document.getElementById('solLabel').classList.toggle('inactive', !isSol);
+            document.getElementById('usdcLabel').classList.toggle('active', !isSol);
+            document.getElementById('usdcLabel').classList.toggle('inactive', isSol);
+        }
+        
+        // Wallet Connection (Privy Integration)
+        let connectedWallet = null;
+        
+        async function connectWallet(walletType) {
+            closeWalletModal();
+            
+            // Simulate wallet connection
+            const btn = document.getElementById('connectBtn');
+            const btnText = document.getElementById('connectBtnText');
+            
+            btn.innerHTML = '<span class="loader"></span> Connecting...';
+            
+            setTimeout(() => {
+                // Generate fake wallet address
+                const address = '0x' + Math.random().toString(16).substr(2, 8) + '...' + Math.random().toString(16).substr(2, 4);
+                connectedWallet = address;
+                
+                btn.classList.add('connected');
+                btn.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 6 9 17l-5-5"/>
+                    </svg>
+                    <span class="wallet-address">${address}</span>
+                `;
+            }, 1500);
+        }
+        
+        async function connectWithEmail() {
+            closeWalletModal();
+            alert('Email/social login would open here via Privy SDK');
+        }
+        
+        // Close modals on overlay click
+        document.getElementById('productModal').addEventListener('click', function(e) {
+            if (e.target === this) closeProductModal();
+        });
+        
+        document.getElementById('walletModal').addEventListener('click', function(e) {
+            if (e.target === this) closeWalletModal();
+        });
+        
+        // Escape key to close modals
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeProductModal();
+                closeWalletModal();
+                closeSidebar();
+            }
+        });
+        
+        // Initialize
+        renderProducts('bestSellersRow', bestSellers);
+        renderProducts('newProductsRow', newProducts);
+        renderCollections();
+        renderCarousel();
+        startCarousel();
+    </script>
+</body>
+</html>

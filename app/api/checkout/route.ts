@@ -31,10 +31,10 @@ export async function POST(request: NextRequest) {
     const user = await requireAuth();
     const body = await request.json();
     
-    const { 
-      shippingAddress, 
+    const {
+      shippingAddress,
       email,
-      currency = 'SOL' 
+      currency = 'USDC'
     } = body;
 
     // Validate shipping address

@@ -24,6 +24,11 @@ import {
   Plus,
   Store as StoreIcon,
   MessageSquare,
+  AlertTriangle,
+  Mail,
+  Phone,
+  MapPin,
+  Building,
 } from 'lucide-react';
 
 interface NotificationCounts {
@@ -61,6 +66,22 @@ export default function MerchantLayout({
     unreadMessages: 0,
   });
   const [userProfile, setUserProfile] = useState<{ avatarUrl: string | null; username: string | null } | null>(null);
+
+  // Shipping info modal state
+  const [showShippingModal, setShowShippingModal] = useState(false);
+  const [shippingInfoChecked, setShippingInfoChecked] = useState(false);
+  const [shippingForm, setShippingForm] = useState({
+    contactEmail: '',
+    contactPhone: '',
+    businessName: '',
+    businessAddress: '',
+    businessCity: '',
+    businessState: '',
+    businessZip: '',
+    businessCountry: 'US',
+  });
+  const [savingShipping, setSavingShipping] = useState(false);
+  const [shippingError, setShippingError] = useState('');
 
   useEffect(() => {
     setMounted(true);
@@ -137,24 +158,104 @@ export default function MerchantLayout({
       return;
     }
     try {
-      const res = await fetch('/api/merchant/stores', {
-        credentials: 'include',
-        headers: {
-          'x-wallet-address': publicKey.toBase58(),
-        },
-      });
-      const data = await res.json();
+      // Fetch stores list and full store details
+      const [storesRes, storeDetailRes] = await Promise.all([
+        fetch('/api/merchant/stores', {
+          credentials: 'include',
+          headers: { 'x-wallet-address': publicKey.toBase58() },
+        }),
+        fetch('/api/merchant/store', {
+          credentials: 'include',
+          headers: { 'x-wallet-address': publicKey.toBase58() },
+        }),
+      ]);
+
+      const data = await storesRes.json();
+      const storeDetail = await storeDetailRes.json();
+
       console.log('[Merchant Layout] Stores data:', data);
+      console.log('[Merchant Layout] Store detail:', storeDetail);
+
       if (data.stores && data.stores.length > 0) {
         setAllStores(data.stores);
         // Set the first approved store as active, or first store if none approved
         const approvedStore = data.stores.find((s: any) => s.status === 'APPROVED');
         setStore(approvedStore || data.stores[0]);
+
+        // Check if shipping info is missing (only for approved stores)
+        if (storeDetail.store && storeDetail.store.status === 'APPROVED' && !shippingInfoChecked) {
+          const s = storeDetail.store;
+          const missingShippingInfo = !s.contactEmail || !s.contactPhone ||
+            !s.businessAddress || !s.businessCity || !s.businessState || !s.businessZip;
+
+          if (missingShippingInfo) {
+            // Pre-fill form with existing data
+            setShippingForm({
+              contactEmail: s.contactEmail || '',
+              contactPhone: s.contactPhone || '',
+              businessName: s.businessName || s.name || '',
+              businessAddress: s.businessAddress || '',
+              businessCity: s.businessCity || '',
+              businessState: s.businessState || '',
+              businessZip: s.businessZip || '',
+              businessCountry: s.businessCountry || 'US',
+            });
+            setShowShippingModal(true);
+          }
+          setShippingInfoChecked(true);
+        }
       }
     } catch (err) {
       console.error('[Merchant Layout] Failed to fetch stores:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveShippingInfo = async () => {
+    if (!publicKey) return;
+
+    // Validate required fields
+    if (!shippingForm.contactEmail || !shippingForm.contactPhone ||
+        !shippingForm.businessAddress || !shippingForm.businessCity ||
+        !shippingForm.businessState || !shippingForm.businessZip) {
+      setShippingError('Please fill in all required fields');
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(shippingForm.contactEmail)) {
+      setShippingError('Please enter a valid email address');
+      return;
+    }
+
+    setSavingShipping(true);
+    setShippingError('');
+
+    try {
+      const res = await fetch('/api/merchant/store', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': publicKey.toBase58(),
+        },
+        body: JSON.stringify(shippingForm),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setShowShippingModal(false);
+        // Refresh store data
+        fetchStore();
+      } else {
+        setShippingError(data.error || 'Failed to save shipping info');
+      }
+    } catch (err) {
+      console.error('Failed to save shipping info:', err);
+      setShippingError('Failed to save shipping info');
+    } finally {
+      setSavingShipping(false);
     }
   };
 
@@ -288,6 +389,159 @@ export default function MerchantLayout({
   // Store approved - show full dashboard
   return (
     <div className="min-h-screen bg-[#0a0e1a]">
+      {/* Shipping Info Modal */}
+      {showShippingModal && (
+        <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-4">
+          <div className="bg-[#111827] border border-gray-700 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-700">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-yellow-400" />
+                </div>
+                <h2 className="text-xl font-bold text-white">Complete Your Seller Profile</h2>
+              </div>
+              <p className="text-gray-400 text-sm">
+                Please add your contact and shipping information to enable shipping label purchases for your orders.
+              </p>
+            </div>
+
+            {/* Form */}
+            <div className="p-6 space-y-4">
+              {shippingError && (
+                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+                  {shippingError}
+                </div>
+              )}
+
+              {/* Contact Info */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                  <Mail className="w-4 h-4" /> Contact Information
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Email *</label>
+                    <input
+                      type="email"
+                      value={shippingForm.contactEmail}
+                      onChange={(e) => setShippingForm({ ...shippingForm, contactEmail: e.target.value })}
+                      placeholder="your@email.com"
+                      className="w-full px-3 py-2 bg-[#1f2937] border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Phone *</label>
+                    <input
+                      type="tel"
+                      value={shippingForm.contactPhone}
+                      onChange={(e) => setShippingForm({ ...shippingForm, contactPhone: e.target.value })}
+                      placeholder="(555) 123-4567"
+                      className="w-full px-3 py-2 bg-[#1f2937] border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Business Address */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                  <MapPin className="w-4 h-4" /> Business Address (Ship From)
+                </h3>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Business Name</label>
+                  <input
+                    type="text"
+                    value={shippingForm.businessName}
+                    onChange={(e) => setShippingForm({ ...shippingForm, businessName: e.target.value })}
+                    placeholder="Your Business Name"
+                    className="w-full px-3 py-2 bg-[#1f2937] border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Street Address *</label>
+                  <input
+                    type="text"
+                    value={shippingForm.businessAddress}
+                    onChange={(e) => setShippingForm({ ...shippingForm, businessAddress: e.target.value })}
+                    placeholder="123 Main St"
+                    className="w-full px-3 py-2 bg-[#1f2937] border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className="block text-xs text-gray-500 mb-1">City *</label>
+                    <input
+                      type="text"
+                      value={shippingForm.businessCity}
+                      onChange={(e) => setShippingForm({ ...shippingForm, businessCity: e.target.value })}
+                      placeholder="City"
+                      className="w-full px-3 py-2 bg-[#1f2937] border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">State *</label>
+                    <input
+                      type="text"
+                      value={shippingForm.businessState}
+                      onChange={(e) => setShippingForm({ ...shippingForm, businessState: e.target.value })}
+                      placeholder="CA"
+                      maxLength={2}
+                      className="w-full px-3 py-2 bg-[#1f2937] border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">ZIP *</label>
+                    <input
+                      type="text"
+                      value={shippingForm.businessZip}
+                      onChange={(e) => setShippingForm({ ...shippingForm, businessZip: e.target.value })}
+                      placeholder="90210"
+                      className="w-full px-3 py-2 bg-[#1f2937] border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Country</label>
+                    <select
+                      value={shippingForm.businessCountry}
+                      onChange={(e) => setShippingForm({ ...shippingForm, businessCountry: e.target.value })}
+                      className="w-full px-3 py-2 bg-[#1f2937] border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
+                    >
+                      <option value="US">US</option>
+                      <option value="CA">CA</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-700 flex gap-3 justify-end">
+              <button
+                onClick={() => setShowShippingModal(false)}
+                className="px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm"
+              >
+                Skip for Now
+              </button>
+              <button
+                onClick={handleSaveShippingInfo}
+                disabled={savingShipping}
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
+              >
+                {savingShipping ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save & Continue'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div

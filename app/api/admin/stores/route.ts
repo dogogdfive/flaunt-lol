@@ -1,9 +1,9 @@
 // app/api/admin/stores/route.ts
-// Admin stores listing API
+// Admin stores listing and creation API
 
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { requireAdmin } from '@/lib/auth';
+import { requireAdmin, requireSuperAdmin } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
@@ -79,6 +79,105 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       { error: 'Failed to fetch stores' },
+      { status: 500 }
+    );
+  }
+}
+
+// POST - Create a store directly (Super Admin only)
+export async function POST(request: NextRequest) {
+  try {
+    const admin = await requireSuperAdmin();
+    console.log('[Admin Stores] Creating store, admin:', admin.walletAddress);
+
+    const body = await request.json();
+    const { walletAddress, storeName, description, status = 'APPROVED' } = body;
+
+    if (!walletAddress || !storeName) {
+      return NextResponse.json(
+        { error: 'walletAddress and storeName are required' },
+        { status: 400 }
+      );
+    }
+
+    // Find or create user by wallet address
+    let user = await prisma.user.findFirst({
+      where: { walletAddress },
+    });
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          walletAddress,
+          role: 'MERCHANT',
+        },
+      });
+      console.log('[Admin Stores] Created new user:', user.id);
+    } else {
+      // Ensure user has at least MERCHANT role
+      if (user.role === 'CUSTOMER') {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { role: 'MERCHANT' },
+        });
+      }
+    }
+
+    // Generate slug from store name
+    const baseSlug = storeName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+
+    let slug = baseSlug;
+    let counter = 1;
+    while (await prisma.store.findUnique({ where: { slug } })) {
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+
+    // Create the store
+    const store = await prisma.store.create({
+      data: {
+        ownerId: user.id,
+        name: storeName,
+        slug,
+        description: description || `${storeName} store`,
+        status: status as 'PENDING' | 'APPROVED' | 'REJECTED',
+        payoutWallet: walletAddress,
+      },
+    });
+
+    console.log('[Admin Stores] Store created:', store.id, store.slug);
+
+    return NextResponse.json({
+      success: true,
+      store: {
+        id: store.id,
+        name: store.name,
+        slug: store.slug,
+        status: store.status,
+        ownerId: store.ownerId,
+      },
+      user: {
+        id: user.id,
+        walletAddress: user.walletAddress,
+        role: user.role,
+      },
+    });
+
+  } catch (error) {
+    console.error('Admin create store error:', error);
+
+    if (error instanceof Error && error.message === 'Super Admin access required') {
+      return NextResponse.json(
+        { error: 'Super Admin access required' },
+        { status: 403 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to create store' },
       { status: 500 }
     );
   }

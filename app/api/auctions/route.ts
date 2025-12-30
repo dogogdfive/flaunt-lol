@@ -156,8 +156,11 @@ export async function POST(request: NextRequest) {
       quantity,
     } = body;
 
-    // Validate required fields
-    if (!storeId || !title || !startPriceSol || !floorPriceSol || !durationMinutes || !startsAt) {
+    // Validate required fields - accept either SOL or USDC pricing
+    const hasStartPrice = startPriceSol || startPriceUsdc;
+    const hasFloorPrice = floorPriceSol || floorPriceUsdc;
+
+    if (!storeId || !title || !hasStartPrice || !hasFloorPrice || !durationMinutes || !startsAt) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -180,8 +183,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate pricing
-    if (floorPriceSol >= startPriceSol) {
+    // Validate pricing (check both SOL and USDC if provided)
+    const startPrice = startPriceUsdc || startPriceSol;
+    const floorPrice = floorPriceUsdc || floorPriceSol;
+    if (floorPrice >= startPrice) {
       return NextResponse.json(
         { error: 'Floor price must be less than start price' },
         { status: 400 }

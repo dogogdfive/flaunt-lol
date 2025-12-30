@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!type || !['storeBanner', 'productImage', 'storeLogo', 'categoryImage', 'avatar', 'reviewImage'].includes(type)) {
+    if (!type || !['storeBanner', 'productImage', 'storeLogo', 'categoryImage', 'avatar', 'reviewImage', 'auctionImage'].includes(type)) {
       return NextResponse.json(
         { error: 'Invalid upload type' },
         { status: 400 }

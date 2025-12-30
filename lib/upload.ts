@@ -57,6 +57,12 @@ export const IMAGE_REQUIREMENTS = {
     maxSize: 5 * 1024 * 1024, // 5MB
     formats: ['image/jpeg', 'image/png', 'image/webp'],
   },
+  auctionImage: {
+    width: 800,
+    height: 800,
+    maxSize: 5 * 1024 * 1024, // 5MB
+    formats: ['image/jpeg', 'image/png', 'image/webp'],
+  },
 };
 
 type ImageType = keyof typeof IMAGE_REQUIREMENTS;

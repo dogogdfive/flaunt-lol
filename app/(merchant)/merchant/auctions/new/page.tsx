@@ -45,8 +45,8 @@ export default function NewAuctionPage() {
   const [description, setDescription] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState('');
-  const [startPriceSol, setStartPriceSol] = useState('');
-  const [floorPriceSol, setFloorPriceSol] = useState('');
+  const [startPriceUsdc, setStartPriceUsdc] = useState('');
+  const [floorPriceUsdc, setFloorPriceUsdc] = useState('');
   const [decayType, setDecayType] = useState<DecayType>('LINEAR');
   const [durationMinutes, setDurationMinutes] = useState('60');
   const [startsAt, setStartsAt] = useState('');
@@ -99,7 +99,7 @@ export default function NewAuctionPage() {
       for (const file of Array.from(files)) {
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('type', 'auction');
+        formData.append('type', 'auctionImage');
 
         const res = await fetch('/api/upload', {
           method: 'POST',
@@ -143,15 +143,15 @@ export default function NewAuctionPage() {
       setError('Title is required');
       return;
     }
-    if (!startPriceSol || parseFloat(startPriceSol) <= 0) {
+    if (!startPriceUsdc || parseFloat(startPriceUsdc) <= 0) {
       setError('Start price is required');
       return;
     }
-    if (!floorPriceSol || parseFloat(floorPriceSol) <= 0) {
+    if (!floorPriceUsdc || parseFloat(floorPriceUsdc) <= 0) {
       setError('Floor price is required');
       return;
     }
-    if (parseFloat(floorPriceSol) >= parseFloat(startPriceSol)) {
+    if (parseFloat(floorPriceUsdc) >= parseFloat(startPriceUsdc)) {
       setError('Floor price must be less than start price');
       return;
     }
@@ -179,8 +179,8 @@ export default function NewAuctionPage() {
           description: description.trim() || null,
           images,
           videoUrl: videoUrl.trim() || null,
-          startPriceSol: parseFloat(startPriceSol),
-          floorPriceSol: parseFloat(floorPriceSol),
+          startPriceUsdc: parseFloat(startPriceUsdc),
+          floorPriceUsdc: parseFloat(floorPriceUsdc),
           decayType,
           durationMinutes: parseInt(durationMinutes),
           startsAt: new Date(startsAt).toISOString(),
@@ -203,8 +203,8 @@ export default function NewAuctionPage() {
 
   // Preview temperature based on current inputs
   const previewTemperature = () => {
-    const start = parseFloat(startPriceSol) || 100;
-    const floor = parseFloat(floorPriceSol) || 10;
+    const start = parseFloat(startPriceUsdc) || 100;
+    const floor = parseFloat(floorPriceUsdc) || 10;
     // Simulating 30% through auction
     const current = start - (start - floor) * 0.3;
     const temp = ((current - floor) / (start - floor)) * 100;
@@ -371,30 +371,30 @@ export default function NewAuctionPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Start Price (SOL) <span className="text-red-400">*</span>
+                Start Price (USDC) <span className="text-red-400">*</span>
               </label>
               <input
                 type="number"
-                step="0.0001"
+                step="0.01"
                 min="0"
-                value={startPriceSol}
-                onChange={(e) => setStartPriceSol(e.target.value)}
-                placeholder="1.0"
+                value={startPriceUsdc}
+                onChange={(e) => setStartPriceUsdc(e.target.value)}
+                placeholder="100.00"
                 className="w-full px-4 py-3 bg-[#1f2937] border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
               />
               <p className="text-xs text-gray-500 mt-1">Highest price</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Floor Price (SOL) <span className="text-red-400">*</span>
+                Floor Price (USDC) <span className="text-red-400">*</span>
               </label>
               <input
                 type="number"
-                step="0.0001"
+                step="0.01"
                 min="0"
-                value={floorPriceSol}
-                onChange={(e) => setFloorPriceSol(e.target.value)}
-                placeholder="0.1"
+                value={floorPriceUsdc}
+                onChange={(e) => setFloorPriceUsdc(e.target.value)}
+                placeholder="10.00"
                 className="w-full px-4 py-3 bg-[#1f2937] border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
               />
               <p className="text-xs text-gray-500 mt-1">Lowest price</p>
@@ -402,7 +402,7 @@ export default function NewAuctionPage() {
           </div>
 
           {/* Temperature Preview */}
-          {startPriceSol && floorPriceSol && (
+          {startPriceUsdc && floorPriceUsdc && (
             <div className="mt-4 pt-4 border-t border-gray-700">
               <p className="text-xs text-gray-400 mb-2">Preview (30% through auction):</p>
               <div className="h-2 bg-gray-800 rounded-full overflow-hidden">

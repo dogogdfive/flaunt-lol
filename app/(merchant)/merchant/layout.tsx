@@ -516,17 +516,14 @@ export default function MerchantLayout({
             </div>
 
             {/* Footer */}
-            <div className="p-6 border-t border-gray-700 flex gap-3 justify-end">
-              <button
-                onClick={() => setShowShippingModal(false)}
-                className="px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm"
-              >
-                Skip for Now
-              </button>
+            <div className="p-6 border-t border-gray-700">
+              <p className="text-xs text-gray-500 mb-4 text-center">
+                This information is required to purchase shipping labels and fulfill orders.
+              </p>
               <button
                 onClick={handleSaveShippingInfo}
                 disabled={savingShipping}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
+                className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
               >
                 {savingShipping ? (
                   <>

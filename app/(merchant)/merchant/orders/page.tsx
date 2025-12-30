@@ -253,7 +253,9 @@ export default function MerchantOrders() {
         setShowFulfillModal(false);
         setSelectedRate(null);
         setShippingRates([]);
-        showSuccess('Label purchased! Order marked as shipped.');
+        // Show success with label cost info
+        const costMsg = data.labelCost ? ` ($${data.labelCost.toFixed(2)} deducted from payout)` : '';
+        showSuccess(`Label purchased! Order marked as shipped.${costMsg}`);
       } else {
         setFulfillError(data.error || 'Failed to purchase label');
       }
@@ -684,6 +686,9 @@ export default function MerchantOrders() {
                     >
                       {labelLoading ? 'Purchasing...' : 'Purchase Label & Ship'}
                     </button>
+                    <p className="text-xs text-gray-500 mt-2 text-center">
+                      Label cost will be deducted from your payout
+                    </p>
                   </div>
                 )}
 
@@ -1130,6 +1135,9 @@ export default function MerchantOrders() {
               <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
                 <p className="text-sm text-blue-300">
                   Purchasing a label will automatically add tracking and mark this order as shipped.
+                </p>
+                <p className="text-xs text-blue-400/70 mt-1">
+                  Label cost will be deducted from your payout.
                 </p>
               </div>
             </div>

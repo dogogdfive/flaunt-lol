@@ -192,6 +192,8 @@ export async function POST(
     const estimatedDelivery = new Date();
     estimatedDelivery.setDate(estimatedDelivery.getDate() + 5); // Default 5 days if not specified
 
+    const labelCost = parseFloat(body.price || '0');
+
     // Update order with label info
     await prisma.order.update({
       where: { id: orderId },
@@ -199,7 +201,7 @@ export async function POST(
         trackingNumber: transaction.tracking_number,
         trackingUrl: transaction.tracking_url_provider,
         labelUrl: transaction.label_url,
-        labelCost: parseFloat(body.price || '0'),
+        labelCost,
         shippoRateId: rateId,
         shippoShipmentId: shipmentId,
         carrier: body.provider || 'USPS',
@@ -209,6 +211,32 @@ export async function POST(
       },
     });
 
+    // Deduct label cost from merchant's payout
+    if (labelCost > 0) {
+      // Find pending payout for this order
+      const payout = await prisma.payout.findFirst({
+        where: {
+          storeId: order.storeId,
+          status: 'PENDING',
+          orders: { some: { id: orderId } },
+        },
+      });
+
+      if (payout) {
+        // Deduct label cost from payout amount
+        const newAmount = Math.max(0, Number(payout.amount) - labelCost);
+        await prisma.payout.update({
+          where: { id: payout.id },
+          data: { amount: newAmount },
+        });
+        console.log(`[Shipping] Deducted $${labelCost} label cost from payout ${payout.id}. New amount: $${newAmount}`);
+      } else {
+        // No payout yet - the label cost is stored on the order
+        // It will be deducted when calculating future payouts
+        console.log(`[Shipping] Label cost $${labelCost} stored on order ${orderId} for future payout deduction`);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       label: {
@@ -216,6 +244,8 @@ export async function POST(
         trackingUrl: transaction.tracking_url_provider,
         labelUrl: transaction.label_url,
       },
+      labelCost,
+      message: labelCost > 0 ? `Label cost of $${labelCost.toFixed(2)} will be deducted from your payout` : undefined,
     });
   } catch (error) {
     console.error('Purchase label error:', error);

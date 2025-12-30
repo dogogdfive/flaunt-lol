@@ -51,7 +51,6 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState('');
 
   // Form state
-  const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
@@ -82,7 +81,6 @@ export default function ProfilePage() {
 
       if (data.success && data.user) {
         setProfile(data.user);
-        setName(data.user.name || '');
         setUsername(data.user.username || '');
         setEmail(data.user.email || '');
         setAvatarUrl(data.user.avatarUrl || '');
@@ -192,7 +190,7 @@ export default function ProfilePage() {
           'Content-Type': 'application/json',
           'x-wallet-address': publicKey.toBase58(),
         },
-        body: JSON.stringify({ name, username, email, avatarUrl }),
+        body: JSON.stringify({ username, email, avatarUrl }),
       });
 
       const data = await res.json();
@@ -212,7 +210,6 @@ export default function ProfilePage() {
   };
 
   const hasChanges =
-    name !== (profile?.name || '') ||
     username !== (profile?.username || '') ||
     email !== (profile?.email || '') ||
     avatarUrl !== (profile?.avatarUrl || '');
@@ -278,7 +275,7 @@ export default function ProfilePage() {
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
-                      <span>{name?.[0]?.toUpperCase() || username?.[0]?.toUpperCase() || 'U'}</span>
+                      <span>{username?.[0]?.toUpperCase() || 'U'}</span>
                     )}
                     {/* Overlay on hover */}
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -304,11 +301,8 @@ export default function ProfilePage() {
                     {uploadingAvatar ? 'Uploading...' : 'Change photo'}
                   </button>
                   <h2 className="text-xl font-semibold text-white">
-                    {name || username || 'Anonymous'}
+                    {username ? `@${username}` : 'Set your username'}
                   </h2>
-                  {username && (
-                    <p className="text-gray-400 text-sm">@{username}</p>
-                  )}
                 </div>
 
                 {/* Stats */}
@@ -376,31 +370,11 @@ export default function ProfilePage() {
                 )}
 
                 <div className="space-y-5">
-                  {/* Display Name */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Display Name
-                    </label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                      <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="Enter your display name"
-                        maxLength={50}
-                        className="w-full pl-10 pr-4 py-3 bg-[#1f2937] border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      This is how you'll appear on the platform
-                    </p>
-                  </div>
-
-                  {/* Username */}
+                  {/* Username - Primary identifier */}
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
                       Username
+                      <span className="text-blue-400 font-normal ml-1">(required)</span>
                     </label>
                     <div className="relative">
                       <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
@@ -435,7 +409,7 @@ export default function ProfilePage() {
                       <p className="text-xs text-red-400 mt-1">{usernameError}</p>
                     ) : (
                       <p className="text-xs text-gray-500 mt-1">
-                        3-20 characters. Letters, numbers, and underscores only.
+                        This is how you'll appear on the platform. 3-20 characters, letters, numbers, and underscores only.
                       </p>
                     )}
                   </div>

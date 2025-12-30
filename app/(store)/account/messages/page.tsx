@@ -296,7 +296,8 @@ export default function BuyerMessagesPage() {
     const conv: Conversation = {
       id: admin.id,
       walletAddress: admin.walletAddress,
-      name: admin.name || admin.username || 'Admin',
+      name: admin.username || admin.name || 'Admin',
+      username: admin.username || undefined,
       role: 'ADMIN',
       unreadCount: 0,
     };
@@ -452,10 +453,10 @@ export default function BuyerMessagesPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <span className="text-white font-medium truncate block">
-                              {admin.name || admin.username || 'Admin'}
+                              {admin.username ? `@${admin.username}` : admin.name || 'Admin'}
                             </span>
                             <p className="text-gray-500 text-xs">
-                              {admin.username ? `@${admin.username}` : 'Platform Admin'}
+                              Platform Admin
                             </p>
                           </div>
                           <Shield className="w-4 h-4 text-pink-400" />
@@ -503,21 +504,29 @@ export default function BuyerMessagesPage() {
                       selectedConversation?.id === conv.id ? 'bg-[#1f2937]' : ''
                     }`}
                   >
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      conv.role === 'ADMIN'
-                        ? 'bg-gradient-to-br from-pink-500 to-purple-600'
-                        : 'bg-green-600'
-                    }`}>
-                      {conv.role === 'ADMIN' ? (
-                        <Shield className="w-5 h-5 text-white" />
-                      ) : (
-                        <Store className="w-5 h-5 text-white" />
-                      )}
-                    </div>
+                    {conv.avatarUrl ? (
+                      <img
+                        src={conv.avatarUrl}
+                        alt=""
+                        className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        conv.role === 'ADMIN'
+                          ? 'bg-gradient-to-br from-pink-500 to-purple-600'
+                          : 'bg-green-600'
+                      }`}>
+                        {conv.username?.charAt(0)?.toUpperCase() || conv.name?.charAt(0)?.toUpperCase() || (conv.role === 'ADMIN' ? (
+                          <Shield className="w-5 h-5 text-white" />
+                        ) : (
+                          <Store className="w-5 h-5 text-white" />
+                        ))}
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <span className="text-white font-medium truncate">
-                          {conv.stores?.[0]?.name || conv.name || (conv.role === 'ADMIN' ? 'Admin' : 'Merchant')}
+                          {conv.stores?.[0]?.name || (conv.username ? `@${conv.username}` : conv.name) || (conv.role === 'ADMIN' ? 'Admin' : 'Merchant')}
                         </span>
                         {conv.unreadCount > 0 && (
                           <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
@@ -568,10 +577,10 @@ export default function BuyerMessagesPage() {
                   )}
                   <div>
                     <h3 className="text-white font-medium">
-                      {selectedConversation.name || selectedConversation.username || selectedConversation.stores?.[0]?.name || (selectedConversation.role === 'ADMIN' ? 'Admin' : 'Merchant')}
+                      {selectedConversation.stores?.[0]?.name || (selectedConversation.username ? `@${selectedConversation.username}` : selectedConversation.name) || (selectedConversation.role === 'ADMIN' ? 'Admin' : 'Merchant')}
                     </h3>
                     <p className="text-gray-500 text-sm">
-                      {selectedConversation.username ? `@${selectedConversation.username}` : (selectedConversation.role === 'ADMIN' ? 'Platform Admin' : selectedConversation.role === 'MERCHANT' ? 'Merchant' : 'Support')}
+                      {selectedConversation.role === 'ADMIN' ? 'Platform Admin' : selectedConversation.role === 'MERCHANT' ? 'Merchant' : 'Support'}
                     </p>
                   </div>
                 </div>
@@ -592,8 +601,24 @@ export default function BuyerMessagesPage() {
                       return (
                         <div
                           key={msg.id}
-                          className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+                          className={`flex items-end gap-2 ${isMe ? 'justify-end' : 'justify-start'}`}
                         >
+                          {/* Avatar for other person */}
+                          {!isMe && (
+                            msg.sender.avatarUrl ? (
+                              <img
+                                src={msg.sender.avatarUrl}
+                                alt=""
+                                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center flex-shrink-0">
+                                <span className="text-white text-xs font-medium">
+                                  {msg.sender.username?.charAt(0)?.toUpperCase() || msg.sender.name?.charAt(0)?.toUpperCase() || 'M'}
+                                </span>
+                              </div>
+                            )
+                          )}
                           <div
                             className={`max-w-[70%] rounded-lg p-3 ${
                               isMe
@@ -606,6 +631,22 @@ export default function BuyerMessagesPage() {
                               {formatDate(msg.createdAt)}
                             </p>
                           </div>
+                          {/* Avatar for me */}
+                          {isMe && (
+                            msg.sender.avatarUrl ? (
+                              <img
+                                src={msg.sender.avatarUrl}
+                                alt=""
+                                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                                <span className="text-white text-xs font-medium">
+                                  {msg.sender.username?.charAt(0)?.toUpperCase() || 'Y'}
+                                </span>
+                              </div>
+                            )
+                          )}
                         </div>
                       );
                     })

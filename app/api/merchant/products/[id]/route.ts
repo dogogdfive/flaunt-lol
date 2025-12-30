@@ -157,7 +157,25 @@ export async function PATCH(
     if (priceSol !== undefined) updateData.priceSol = priceSol;
     if (priceUsdc !== undefined) updateData.priceUsdc = priceUsdc;
     if (images !== undefined) updateData.images = images;
-    if (category !== undefined) updateData.categoryId = category || null;
+
+    // Handle category - can be ID, slug, or null
+    if (category !== undefined) {
+      if (!category) {
+        updateData.categoryId = null;
+      } else {
+        // Try to find category by ID first, then by slug
+        const foundCategory = await prisma.category.findFirst({
+          where: {
+            OR: [
+              { id: category },
+              { slug: category.toLowerCase() },
+            ],
+          },
+        });
+        updateData.categoryId = foundCategory?.id || null;
+      }
+    }
+
     if (quantity !== undefined) updateData.quantity = quantity;
     if (bondingEnabled !== undefined) updateData.bondingEnabled = bondingEnabled;
     if (bondingGoal !== undefined) updateData.bondingGoal = bondingGoal;

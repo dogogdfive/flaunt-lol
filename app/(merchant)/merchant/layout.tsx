@@ -60,6 +60,7 @@ export default function MerchantLayout({
     pendingPayouts: 0,
     unreadMessages: 0,
   });
+  const [userProfile, setUserProfile] = useState<{ avatarUrl: string | null; username: string | null } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -72,14 +73,30 @@ export default function MerchantLayout({
     if (connected && publicKey) {
       fetchStore();
       fetchNotificationCounts();
+      fetchUserProfile();
     }
   }, [connected, publicKey]);
+
+  const fetchUserProfile = async () => {
+    if (!publicKey) return;
+    try {
+      const res = await fetch('/api/account/profile', {
+        headers: { 'x-wallet-address': publicKey.toBase58() },
+      });
+      const data = await res.json();
+      if (data.success && data.user) {
+        setUserProfile({ avatarUrl: data.user.avatarUrl, username: data.user.username });
+      }
+    } catch (err) {
+      console.error('Failed to fetch user profile:', err);
+    }
+  };
 
   const fetchNotificationCounts = async () => {
     if (!publicKey) return;
     try {
       const [ordersRes, messagesRes] = await Promise.all([
-        fetch('/api/merchant/orders?status=PAID', {
+        fetch('/api/merchant/orders', {
           headers: { 'x-wallet-address': publicKey.toBase58() },
         }),
         fetch('/api/messages', {
@@ -90,9 +107,23 @@ export default function MerchantLayout({
       const ordersData = await ordersRes.json();
       const messagesData = await messagesRes.json();
 
+      // Get archived/dismissed orders from localStorage
+      let archivedOrderIds: string[] = [];
+      try {
+        const saved = localStorage.getItem('merchant_archived_orders');
+        if (saved) archivedOrderIds = JSON.parse(saved);
+      } catch (e) {}
+
+      // Count orders needing fulfillment (paid but not shipped/delivered/cancelled, not archived)
+      const needsFulfillmentCount = (ordersData.orders || []).filter((o: any) => {
+        if (archivedOrderIds.includes(o.id)) return false;
+        return o.paymentStatus === 'COMPLETED' &&
+               !['SHIPPED', 'DELIVERED', 'CONFIRMED', 'CANCELLED'].includes(o.status);
+      }).length;
+
       setNotificationCounts({
-        pendingOrders: ordersData.orders?.length || 0,
-        pendingPayouts: 0, // Will be calculated from orders needing action
+        pendingOrders: needsFulfillmentCount,
+        pendingPayouts: 0,
         unreadMessages: messagesData.conversations?.reduce((sum: number, c: any) => sum + (c.unreadCount || 0), 0) || 0,
       });
     } catch (err) {
@@ -434,9 +465,17 @@ export default function MerchantLayout({
               onClick={() => wallet.disconnect()}
               className="flex items-center gap-2 px-3 py-1.5 bg-[#1f2937] rounded-lg hover:bg-[#374151] transition-colors"
             >
-              <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium">
-                {store.name.charAt(0)}
-              </div>
+              {userProfile?.avatarUrl ? (
+                <img
+                  src={userProfile.avatarUrl}
+                  alt="Profile"
+                  className="w-7 h-7 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium">
+                  {userProfile?.username?.charAt(0)?.toUpperCase() || store.name.charAt(0)}
+                </div>
+              )}
               <span className="text-sm text-white hidden sm:block truncate max-w-[100px]">
                 {publicKey?.toBase58().slice(0, 4)}...{publicKey?.toBase58().slice(-4)}
               </span>

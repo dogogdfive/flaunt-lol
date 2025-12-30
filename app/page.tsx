@@ -142,6 +142,7 @@ export default function HomePage() {
   const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
   const [menuOpen, setMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userProfile, setUserProfile] = useState<{ avatarUrl: string | null; username: string | null } | null>(null);
 
   // Check if connected wallet is admin from database
   useEffect(() => {
@@ -164,6 +165,30 @@ export default function HomePage() {
     };
 
     checkAdminStatus();
+  }, [connected, publicKey]);
+
+  // Fetch user profile for avatar
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!connected || !publicKey) {
+        setUserProfile(null);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/account/profile', {
+          headers: { 'x-wallet-address': publicKey.toBase58() },
+        });
+        const data = await res.json();
+        if (data.success && data.user) {
+          setUserProfile({ avatarUrl: data.user.avatarUrl, username: data.user.username });
+        }
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error);
+      }
+    };
+
+    fetchUserProfile();
   }, [connected, publicKey]);
 
   // Handle search
@@ -465,13 +490,25 @@ export default function HomePage() {
                   className="flex items-center gap-2 px-3 py-2 bg-[#1a1f2e] hover:bg-[#252a3a] rounded-lg transition-colors"
                 >
                   {/* Profile Avatar */}
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </div>
+                  {userProfile?.avatarUrl ? (
+                    <img
+                      src={userProfile.avatarUrl}
+                      alt="Profile"
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                      {userProfile?.username ? (
+                        <span className="text-white font-medium text-sm">{userProfile.username.charAt(0).toUpperCase()}</span>
+                      ) : (
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      )}
+                    </div>
+                  )}
                   <div className="hidden sm:block text-left">
-                    <div className="text-xs text-gray-400">Connected</div>
+                    <div className="text-xs text-gray-400">{userProfile?.username ? `@${userProfile.username}` : 'Connected'}</div>
                     <div className="text-sm font-medium">{truncateWallet(publicKey.toBase58())}</div>
                   </div>
                   <svg className={`w-4 h-4 text-gray-400 transition-transform ${profileDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -37,7 +37,7 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "frame-ancestors 'self' https://auth.privy.io",
+            value: "frame-ancestors 'self'",
           },
           {
             key: 'X-Content-Type-Options',

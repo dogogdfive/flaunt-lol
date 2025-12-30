@@ -317,25 +317,59 @@ export default function MerchantOrders() {
     }
   };
 
+  // Archive/dismiss a cancelled order (remove from view) - persisted to localStorage
+  const [archivedOrders, setArchivedOrders] = useState<Set<string>>(new Set());
+
+  // Load archived orders from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('merchant_archived_orders');
+    if (saved) {
+      try {
+        setArchivedOrders(new Set(JSON.parse(saved)));
+      } catch (e) {
+        console.error('Failed to load archived orders:', e);
+      }
+    }
+  }, []);
+
+  const archiveOrder = (orderId: string) => {
+    setArchivedOrders(prev => {
+      const newSet = new Set([...prev, orderId]);
+      localStorage.setItem('merchant_archived_orders', JSON.stringify([...newSet]));
+      return newSet;
+    });
+  };
+
+  // Check if order needs fulfillment (paid but not shipped)
+  const needsFulfillment = (order: Order) => {
+    return order.paymentStatus === 'COMPLETED' &&
+           !['SHIPPED', 'DELIVERED', 'CONFIRMED', 'CANCELLED'].includes(order.status);
+  };
+
   const filteredOrders = orders.filter((order) => {
+    // Hide archived orders
+    if (archivedOrders.has(order.id)) return false;
+
     if (selectedTab !== 'all') {
-      if (selectedTab === 'to-fulfill' && !['PAID', 'PROCESSING'].includes(order.status)) return false;
+      if (selectedTab === 'to-fulfill' && !needsFulfillment(order)) return false;
       if (selectedTab === 'shipped' && order.status !== 'SHIPPED') return false;
       if (selectedTab === 'delivered' && order.status !== 'DELIVERED') return false;
     }
-    if (searchQuery && 
-        !order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) && 
+    if (searchQuery &&
+        !order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) &&
         !order.customer.name?.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
     }
     return true;
   });
 
+  const visibleOrders = orders.filter(o => !archivedOrders.has(o.id));
+
   const tabs = [
-    { id: 'all', label: 'All Orders', count: orders.length },
-    { id: 'to-fulfill', label: 'To Fulfill', count: orders.filter((o) => ['PAID', 'PROCESSING'].includes(o.status)).length },
-    { id: 'shipped', label: 'Shipped', count: orders.filter((o) => o.status === 'SHIPPED').length },
-    { id: 'delivered', label: 'Delivered', count: orders.filter((o) => o.status === 'DELIVERED').length },
+    { id: 'all', label: 'All Orders', count: visibleOrders.length },
+    { id: 'to-fulfill', label: 'To Fulfill', count: visibleOrders.filter(needsFulfillment).length },
+    { id: 'shipped', label: 'Shipped', count: visibleOrders.filter((o) => o.status === 'SHIPPED').length },
+    { id: 'delivered', label: 'Delivered', count: visibleOrders.filter((o) => o.status === 'DELIVERED').length },
   ];
 
   return (
@@ -349,7 +383,7 @@ export default function MerchantOrders() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
-          <div className="text-2xl font-bold text-white">{orders.filter((o) => ['PAID', 'PROCESSING'].includes(o.status)).length}</div>
+          <div className="text-2xl font-bold text-white">{orders.filter(needsFulfillment).length}</div>
           <div className="text-sm text-gray-400">To Fulfill</div>
         </div>
         <div className="bg-[#111827] border border-gray-800 rounded-xl p-4">
@@ -487,7 +521,7 @@ export default function MerchantOrders() {
                           >
                             <Eye className="w-4 h-4" />
                           </button>
-                          {['PAID', 'PROCESSING'].includes(order.status) && (
+                          {(order.paymentStatus === 'COMPLETED' && !['SHIPPED', 'DELIVERED', 'CONFIRMED', 'CANCELLED'].includes(order.status)) && (
                             <button
                               onClick={() => {
                                 setSelectedOrder(order);
@@ -496,6 +530,15 @@ export default function MerchantOrders() {
                               className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
                             >
                               Fulfill
+                            </button>
+                          )}
+                          {order.status === 'CANCELLED' && (
+                            <button
+                              onClick={() => archiveOrder(order.id)}
+                              className="px-3 py-1.5 bg-gray-600 text-white text-xs font-medium rounded-lg hover:bg-gray-700 transition-colors"
+                              title="Remove from list"
+                            >
+                              Dismiss
                             </button>
                           )}
                           {order.trackingUrl && (
@@ -812,7 +855,7 @@ export default function MerchantOrders() {
                 </button>
               </div>
               <div className="flex items-center gap-2">
-                {['PAID', 'PROCESSING'].includes(selectedOrder.status) && (
+                {needsFulfillment(selectedOrder) && (
                   <>
                     <button
                       onClick={() => {

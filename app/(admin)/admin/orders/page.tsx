@@ -19,6 +19,8 @@ import {
   ThumbsUp,
   StickyNote,
   Printer,
+  Trash2,
+  RotateCcw,
 } from 'lucide-react';
 
 interface Order {
@@ -91,6 +93,34 @@ export default function AdminOrdersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [platformFeePercent, setPlatformFeePercent] = useState(3.5);
+  const [dismissedOrders, setDismissedOrders] = useState<Set<string>>(new Set());
+
+  // Load dismissed orders from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('admin_dismissed_orders');
+    if (saved) {
+      try {
+        setDismissedOrders(new Set(JSON.parse(saved)));
+      } catch (e) {
+        console.error('Failed to load dismissed orders:', e);
+      }
+    }
+  }, []);
+
+  // Save dismissed orders to localStorage whenever it changes
+  const dismissOrder = (orderId: string) => {
+    setDismissedOrders(prev => {
+      const newSet = new Set([...prev, orderId]);
+      localStorage.setItem('admin_dismissed_orders', JSON.stringify([...newSet]));
+      return newSet;
+    });
+  };
+
+  // Restore all dismissed orders
+  const restoreDismissed = () => {
+    setDismissedOrders(new Set());
+    localStorage.removeItem('admin_dismissed_orders');
+  };
 
   useEffect(() => {
     if (publicKey) {
@@ -122,7 +152,10 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const filteredOrders = orders.filter((order) => {
+  // Filter out dismissed orders first
+  const visibleOrders = orders.filter(o => !dismissedOrders.has(o.id));
+
+  const filteredOrders = visibleOrders.filter((order) => {
     if (selectedTab !== 'all') {
       if (selectedTab === 'pending' && order.status !== 'PENDING') return false;
       if (selectedTab === 'paid' && order.status !== 'PAID') return false;
@@ -130,6 +163,7 @@ export default function AdminOrdersPage() {
       if (selectedTab === 'delivered' && order.status !== 'DELIVERED') return false;
       if (selectedTab === 'confirmed' && order.status !== 'CONFIRMED') return false;
       if (selectedTab === 'disputed' && order.status !== 'DISPUTED') return false;
+      if (selectedTab === 'cancelled' && order.status !== 'CANCELLED') return false;
       if (selectedTab === 'with-notes' && !order.merchantNotes) return false;
     }
     if (searchQuery) {
@@ -146,14 +180,15 @@ export default function AdminOrdersPage() {
   });
 
   const tabs = [
-    { id: 'all', label: 'All', count: orders.length },
-    { id: 'pending', label: 'Pending', count: orders.filter(o => o.status === 'PENDING').length },
-    { id: 'paid', label: 'Paid', count: orders.filter(o => o.status === 'PAID').length },
-    { id: 'shipped', label: 'Shipped', count: orders.filter(o => o.status === 'SHIPPED').length },
-    { id: 'delivered', label: 'Delivered', count: orders.filter(o => o.status === 'DELIVERED').length },
-    { id: 'confirmed', label: 'Confirmed', count: orders.filter(o => o.status === 'CONFIRMED').length },
-    { id: 'disputed', label: 'Disputed', count: orders.filter(o => o.status === 'DISPUTED').length },
-    { id: 'with-notes', label: 'With Notes', count: orders.filter(o => o.merchantNotes).length },
+    { id: 'all', label: 'All', count: visibleOrders.length },
+    { id: 'pending', label: 'Pending', count: visibleOrders.filter(o => o.status === 'PENDING').length },
+    { id: 'paid', label: 'Paid', count: visibleOrders.filter(o => o.status === 'PAID').length },
+    { id: 'shipped', label: 'Shipped', count: visibleOrders.filter(o => o.status === 'SHIPPED').length },
+    { id: 'delivered', label: 'Delivered', count: visibleOrders.filter(o => o.status === 'DELIVERED').length },
+    { id: 'confirmed', label: 'Confirmed', count: visibleOrders.filter(o => o.status === 'CONFIRMED').length },
+    { id: 'cancelled', label: 'Cancelled', count: visibleOrders.filter(o => o.status === 'CANCELLED').length },
+    { id: 'disputed', label: 'Disputed', count: visibleOrders.filter(o => o.status === 'DISPUTED').length },
+    { id: 'with-notes', label: 'With Notes', count: visibleOrders.filter(o => o.merchantNotes).length },
   ];
 
   const totalRevenue = orders
@@ -167,9 +202,20 @@ export default function AdminOrdersPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">Orders</h1>
-        <p className="text-gray-400 mt-1">View all orders across all stores</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Orders</h1>
+          <p className="text-gray-400 mt-1">View all orders across all stores</p>
+        </div>
+        {dismissedOrders.size > 0 && (
+          <button
+            onClick={restoreDismissed}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors"
+          >
+            <RotateCcw className="w-4 h-4" />
+            Restore {dismissedOrders.size} dismissed
+          </button>
+        )}
       </div>
 
       {/* Stats */}
@@ -347,6 +393,15 @@ export default function AdminOrdersPage() {
                             >
                               <ExternalLink className="w-4 h-4" />
                             </a>
+                          )}
+                          {(order.status === 'CANCELLED' || (order.status === 'PENDING' && order.paymentStatus !== 'COMPLETED')) && (
+                            <button
+                              onClick={() => dismissOrder(order.id)}
+                              className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                              title="Dismiss order"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           )}
                         </div>
                       </td>

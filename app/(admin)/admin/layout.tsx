@@ -57,6 +57,7 @@ export default function AdminLayout({
   const [mounted, setMounted] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminLoading, setAdminLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState<{ avatarUrl: string | null; username: string | null } | null>(null);
   const wallet = useWallet();
   const { setVisible } = useWalletModal();
 
@@ -169,10 +170,26 @@ export default function AdminLayout({
     }
   };
 
+  const fetchUserProfile = async () => {
+    if (!publicKey) return;
+    try {
+      const res = await fetch('/api/account/profile', {
+        headers: { 'x-wallet-address': publicKey.toBase58() },
+      });
+      const data = await res.json();
+      if (data.success && data.user) {
+        setUserProfile({ avatarUrl: data.user.avatarUrl, username: data.user.username });
+      }
+    } catch (err) {
+      console.error('Failed to fetch user profile:', err);
+    }
+  };
+
   useEffect(() => {
     if (isAdmin) {
       fetchPendingCounts();
       fetchNotifications();
+      fetchUserProfile();
 
       // Refresh counts every 30 seconds
       const interval = setInterval(() => {
@@ -420,10 +437,21 @@ export default function AdminLayout({
               )}
             </div>
 
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-600/20 border border-purple-500/30 rounded-lg">
-              <Shield className="w-4 h-4 text-purple-400" />
-              <span className="text-sm text-purple-300 font-medium">Super Admin</span>
-            </div>
+            <button
+              onClick={() => wallet.disconnect()}
+              className="flex items-center gap-2 px-3 py-1.5 bg-purple-600/20 border border-purple-500/30 rounded-lg hover:bg-purple-600/30 transition-colors"
+            >
+              {userProfile?.avatarUrl ? (
+                <img
+                  src={userProfile.avatarUrl}
+                  alt="Profile"
+                  className="w-6 h-6 rounded-full object-cover"
+                />
+              ) : (
+                <Shield className="w-4 h-4 text-purple-400" />
+              )}
+              <span className="text-sm text-purple-300 font-medium">Admin</span>
+            </button>
           </div>
         </header>
 

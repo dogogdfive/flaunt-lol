@@ -269,16 +269,8 @@ export function middleware(request: NextRequest) {
     return response;
   }
 
-  // Get auth token from cookies
-  const authToken = request.cookies.get('privy-token')?.value;
-
-  // If no token, redirect to login
-  if (!authToken) {
-    const loginUrl = new URL('/become-a-seller', request.url);
-    loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
+  // Auth is handled at the API level via wallet address headers
+  // Protected routes require wallet connection on the frontend
   return response;
 }
 

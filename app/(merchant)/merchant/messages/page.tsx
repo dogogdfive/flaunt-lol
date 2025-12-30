@@ -26,12 +26,16 @@ interface Message {
     id: string;
     walletAddress?: string;
     name?: string;
+    username?: string;
+    avatarUrl?: string | null;
     role: string;
   };
   receiver: {
     id: string;
     walletAddress?: string;
     name?: string;
+    username?: string;
+    avatarUrl?: string | null;
     role: string;
   };
   store?: {
@@ -44,6 +48,8 @@ interface Conversation {
   id: string;
   walletAddress?: string;
   name?: string;
+  username?: string;
+  avatarUrl?: string | null;
   role: string;
   unreadCount: number;
   stores?: { id: string; name: string }[];
@@ -356,13 +362,21 @@ export default function MerchantMessagesPage() {
                       selectedConversation?.id === conv.id ? 'bg-[#1f2937]' : ''
                     }`}
                   >
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isAdmin ? 'bg-blue-600' : 'bg-purple-600'}`}>
-                      {isAdmin ? <Shield className="w-5 h-5 text-white" /> : <User className="w-5 h-5 text-white" />}
-                    </div>
+                    {conv.avatarUrl ? (
+                      <img
+                        src={conv.avatarUrl}
+                        alt=""
+                        className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${isAdmin ? 'bg-blue-600' : 'bg-purple-600'}`}>
+                        {conv.username?.charAt(0)?.toUpperCase() || conv.name?.charAt(0)?.toUpperCase() || (isAdmin ? <Shield className="w-5 h-5 text-white" /> : <User className="w-5 h-5 text-white" />)}
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <span className="text-white font-medium truncate">
-                          {conv.name || (isAdmin ? 'Admin' : (conv.walletAddress ? `Buyer ${conv.walletAddress.slice(0, 4)}...` : 'Buyer'))}
+                          {conv.username ? `@${conv.username}` : conv.name || (isAdmin ? 'Admin' : (conv.walletAddress ? `Buyer ${conv.walletAddress.slice(0, 4)}...` : 'Buyer'))}
                         </span>
                         {conv.unreadCount > 0 && (
                           <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
@@ -397,12 +411,20 @@ export default function MerchantMessagesPage() {
                   const isAdmin = selectedConversation.role === 'ADMIN' || selectedConversation.role === 'SUPER_ADMIN';
                   return (
                     <>
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isAdmin ? 'bg-blue-600' : 'bg-purple-600'}`}>
-                        {isAdmin ? <Shield className="w-5 h-5 text-white" /> : <User className="w-5 h-5 text-white" />}
-                      </div>
+                      {selectedConversation.avatarUrl ? (
+                        <img
+                          src={selectedConversation.avatarUrl}
+                          alt=""
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isAdmin ? 'bg-blue-600' : 'bg-purple-600'}`}>
+                          {selectedConversation.username?.charAt(0)?.toUpperCase() || selectedConversation.name?.charAt(0)?.toUpperCase() || (isAdmin ? <Shield className="w-5 h-5 text-white" /> : <User className="w-5 h-5 text-white" />)}
+                        </div>
+                      )}
                       <div>
                         <h3 className="text-white font-medium">
-                          {selectedConversation.name || (isAdmin ? 'Admin' : (selectedConversation.walletAddress ? `Buyer ${selectedConversation.walletAddress.slice(0, 4)}...` : 'Buyer'))}
+                          {selectedConversation.username ? `@${selectedConversation.username}` : selectedConversation.name || (isAdmin ? 'Admin' : (selectedConversation.walletAddress ? `Buyer ${selectedConversation.walletAddress.slice(0, 4)}...` : 'Buyer'))}
                         </h3>
                         <p className="text-gray-500 text-sm">
                           {isAdmin ? 'Platform Admin' : (selectedConversation.walletAddress ? `${selectedConversation.walletAddress.slice(0, 8)}...` : 'Buyer')}

@@ -935,7 +935,7 @@ export default function HomePage() {
           {loading ? (
             <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
               {[...Array(8)].map((_, i) => (
-                <div key={i} className="flex-shrink-0 w-40 rounded-xl h-56 bg-[#1a1f2e] animate-pulse" />
+                <div key={i} className="flex-shrink-0 w-52 rounded-xl h-72 bg-[#1a1f2e] animate-pulse" />
               ))}
             </div>
           ) : products.length > 0 ? (
@@ -944,7 +944,7 @@ export default function HomePage() {
                 <div
                   key={product.id}
                   onClick={() => setSelectedProduct(product)}
-                  className="flex-shrink-0 w-40 bg-[#1a1f2e] rounded-xl overflow-hidden cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all group"
+                  className="flex-shrink-0 w-52 bg-[#1a1f2e] rounded-xl overflow-hidden cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all group"
                 >
                   {/* Image */}
                   <div className="aspect-square bg-[#252a3a] relative overflow-hidden">
@@ -962,15 +962,15 @@ export default function HomePage() {
                           : 'bg-black/50 text-white hover:bg-black/70'
                       }`}
                     >
-                      <svg className="w-3 h-3" fill={wishlistIds.has(product.id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4" fill={wishlistIds.has(product.id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                       </svg>
                     </button>
                   </div>
                   {/* Info */}
-                  <div className="p-2">
-                    <p className="text-xs text-white font-medium truncate">{product.name}</p>
-                    <p className="text-[10px] text-gray-500 truncate">{product.store.name}</p>
+                  <div className="p-3">
+                    <p className="text-sm text-white font-medium truncate">{product.name}</p>
+                    <p className="text-xs text-gray-500 truncate">{product.store.name}</p>
                   </div>
                 </div>
               ))}

@@ -53,10 +53,12 @@ export async function GET(request: NextRequest) {
       })),
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching merchant stores:', error);
+    console.error('Error stack:', error?.stack);
+    console.error('Error message:', error?.message);
     return NextResponse.json(
-      { error: 'Failed to fetch stores' },
+      { error: 'Failed to fetch stores', details: error?.message || 'Unknown error' },
       { status: 500 }
     );
   }

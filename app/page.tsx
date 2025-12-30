@@ -1196,78 +1196,19 @@ function TradeOfferModal({
   onConnect: () => void;
   authenticated: boolean;
 }) {
-  const [description, setDescription] = useState('');
-  const [cashAmount, setCashAmount] = useState('');
-  const [images, setImages] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'nfts' | 'tokens' | 'sol'>('nfts');
+  const [message, setMessage] = useState('');
+  const [solAmount, setSolAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [loading, setLoading] = useState(true);
+  const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Downscale image using canvas
-  const downscaleImage = (file: File, maxWidth: number = 800, maxHeight: number = 800, quality: number = 0.8): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-
-      img.onload = () => {
-        let { width, height } = img;
-
-        // Calculate new dimensions
-        if (width > maxWidth || height > maxHeight) {
-          const ratio = Math.min(maxWidth / width, maxHeight / height);
-          width = Math.round(width * ratio);
-          height = Math.round(height * ratio);
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/jpeg', quality);
-          resolve(dataUrl);
-        } else {
-          reject(new Error('Could not get canvas context'));
-        }
-      };
-
-      img.onerror = () => reject(new Error('Failed to load image'));
-      img.src = URL.createObjectURL(file);
-    });
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    setUploading(true);
-    const newImages: string[] = [];
-
-    try {
-      for (let i = 0; i < Math.min(files.length, 4 - images.length); i++) {
-        const file = files[i];
-        if (file.type.startsWith('image/')) {
-          const downscaled = await downscaleImage(file);
-          newImages.push(downscaled);
-        }
-      }
-      setImages([...images, ...newImages]);
-    } catch (error) {
-      console.error('Error processing images:', error);
-      setMessage({ type: 'error', text: 'Failed to process images' });
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-
-  const removeImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
-  };
+  // Simulate loading NFTs/tokens
+  useEffect(() => {
+    setLoading(true);
+    const timer = setTimeout(() => setLoading(false), 1500);
+    return () => clearTimeout(timer);
+  }, [activeTab]);
 
   const handleSubmit = async () => {
     if (!authenticated || !walletAddress) {
@@ -1275,13 +1216,8 @@ function TradeOfferModal({
       return;
     }
 
-    if (!description.trim()) {
-      setMessage({ type: 'error', text: 'Please describe what you want to trade' });
-      return;
-    }
-
     setSubmitting(true);
-    setMessage(null);
+    setStatusMessage(null);
 
     try {
       const res = await fetch('/api/trades', {
@@ -1292,24 +1228,22 @@ function TradeOfferModal({
         },
         body: JSON.stringify({
           productId: product.id,
-          offerDescription: description,
-          offerAmount: cashAmount ? parseFloat(cashAmount) : null,
-          offerImages: images,
+          offerDescription: `${activeTab.toUpperCase()} offer${solAmount ? ` + ${solAmount} SOL` : ''}${message ? `: ${message}` : ''}`,
+          offerAmount: solAmount ? parseFloat(solAmount) : null,
+          offerImages: [],
         }),
       });
 
       const data = await res.json();
 
       if (data.success) {
-        setMessage({ type: 'success', text: 'Trade offer submitted! The seller will review it.' });
-        setTimeout(() => {
-          onClose();
-        }, 2000);
+        setStatusMessage({ type: 'success', text: 'Offer sent! The seller will review it.' });
+        setTimeout(() => onClose(), 2000);
       } else {
-        setMessage({ type: 'error', text: data.error || 'Failed to submit trade offer' });
+        setStatusMessage({ type: 'error', text: data.error || 'Failed to send offer' });
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to submit trade offer' });
+      setStatusMessage({ type: 'error', text: 'Failed to send offer' });
     } finally {
       setSubmitting(false);
     }
@@ -1318,138 +1252,151 @@ function TradeOfferModal({
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/80" onClick={onClose} />
-      <div className="relative bg-[#111827] rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-[#0f1419] rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-gray-800">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <h3 className="text-lg font-bold text-white">Submit Trade Offer</h3>
-          <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-lg">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+        <div className="p-6 pb-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-white">Make an Offer</h2>
+              <p className="text-gray-400 text-sm">for {product.name}</p>
+            </div>
+            <button onClick={onClose} className="p-1 hover:bg-gray-800 rounded-lg transition-colors">
+              <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Content */}
-        <div className="p-4 space-y-4">
-          {/* Product info */}
-          <div className="flex items-center gap-3 p-3 bg-[#1a1f2e] rounded-lg">
-            <div className="w-16 h-16 rounded-lg overflow-hidden bg-[#252a3a]">
+        <div className="px-6 pb-6 space-y-4">
+          {/* Product Card */}
+          <div className="flex items-center gap-4 p-4 bg-[#1a1f2e] rounded-xl border border-gray-700">
+            <div className="w-14 h-14 rounded-lg overflow-hidden bg-[#252a3a] flex-shrink-0">
               {product.images?.[0] ? (
                 <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-2xl">🛍️</div>
+                <div className="w-full h-full flex items-center justify-center text-xl">🛍️</div>
               )}
             </div>
             <div>
-              <p className="text-white font-medium">{product.name}</p>
-              <p className="text-gray-400 text-sm">{product.store.name}</p>
-              <p className="text-blue-400 text-sm font-medium">
-                ${(product.priceUsdc || product.priceSol * 100).toFixed(2)} USDC
-              </p>
+              <p className="text-white font-semibold">{product.name}</p>
+              <p className="text-gray-500 text-sm">Product</p>
             </div>
           </div>
 
-          {/* Description */}
+          {/* Info Banner */}
+          <div className="flex items-center gap-3 p-4 bg-purple-500/10 border border-purple-500/30 rounded-xl">
+            <span className="text-yellow-400 text-lg">💡</span>
+            <p className="text-gray-300 text-sm">You can combine NFTs, tokens, and SOL in a single offer!</p>
+          </div>
+
+          {/* Tabs */}
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={() => setActiveTab('nfts')}
+              className={`py-3 px-4 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-all ${
+                activeTab === 'nfts'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-[#1a1f2e] text-gray-400 hover:bg-[#252a3a]'
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              NFTs
+            </button>
+            <button
+              onClick={() => setActiveTab('tokens')}
+              className={`py-3 px-4 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-all ${
+                activeTab === 'tokens'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-[#1a1f2e] text-gray-400 hover:bg-[#252a3a]'
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Tokens
+            </button>
+            <button
+              onClick={() => setActiveTab('sol')}
+              className={`py-3 px-4 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-all ${
+                activeTab === 'sol'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-[#1a1f2e] text-gray-400 hover:bg-[#252a3a]'
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+              SOL
+            </button>
+          </div>
+
+          {/* Content Area */}
+          <div className="min-h-[120px] flex items-center justify-center">
+            {loading ? (
+              <div className="flex flex-col items-center gap-2">
+                <svg className="w-8 h-8 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </div>
+            ) : activeTab === 'sol' ? (
+              <div className="w-full">
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={solAmount}
+                    onChange={(e) => setSolAmount(e.target.value)}
+                    onWheel={(e) => e.currentTarget.blur()}
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                    className="w-full p-4 bg-[#1a1f2e] border border-gray-700 rounded-xl text-white text-lg placeholder-gray-500 focus:outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">SOL</span>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center text-gray-500">
+                <p className="text-sm">
+                  {activeTab === 'nfts' ? 'No NFTs found in wallet' : 'No tokens found in wallet'}
+                </p>
+                <p className="text-xs mt-1">Connect your wallet to see your {activeTab}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Message */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              What do you want to trade? *
+            <label className="block text-sm font-medium text-gray-400 mb-2">
+              Message (optional)
             </label>
             <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe the item(s) you want to trade..."
-              className="w-full p-3 bg-[#1a1f2e] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-pink-500 resize-none"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Add a note to the seller..."
+              className="w-full p-4 bg-[#1a1f2e] border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none"
               rows={3}
             />
           </div>
 
-          {/* Image Upload */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Add photos of your item (optional)
-            </label>
-            <div className="grid grid-cols-4 gap-2">
-              {images.map((img, i) => (
-                <div key={i} className="relative aspect-square rounded-lg overflow-hidden">
-                  <img src={img} alt={`Trade item ${i + 1}`} className="w-full h-full object-cover" />
-                  <button
-                    onClick={() => removeImage(i)}
-                    className="absolute top-1 right-1 p-1 bg-red-500 rounded-full hover:bg-red-600"
-                  >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
-              {images.length < 4 && (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                  className="aspect-square border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-pink-500 hover:text-pink-400 transition-colors"
-                >
-                  {uploading ? (
-                    <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  ) : (
-                    <>
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      <span className="text-xs mt-1">Add</span>
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleImageUpload}
-              className="hidden"
-            />
-            <p className="text-xs text-gray-500 mt-2">Images auto-resize to save space (max 4)</p>
-          </div>
-
-          {/* Cash Amount (optional) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Add cash to sweeten the deal? (optional)
-            </label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-              <input
-                type="number"
-                value={cashAmount}
-                onChange={(e) => setCashAmount(e.target.value)}
-                onWheel={(e) => e.currentTarget.blur()}
-                placeholder="0.00"
-                min="0"
-                step="0.01"
-                className="w-full p-3 pl-8 bg-[#1a1f2e] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-pink-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">USDC</span>
-            </div>
-          </div>
-
-          {/* Message */}
-          {message && (
+          {/* Status Message */}
+          {statusMessage && (
             <div className={`p-3 rounded-lg text-sm ${
-              message.type === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+              statusMessage.type === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
             }`}>
-              {message.text}
+              {statusMessage.text}
             </div>
           )}
 
-          {/* Submit */}
+          {/* Send Button */}
           <button
             onClick={handleSubmit}
-            disabled={submitting || !description.trim()}
-            className="w-full py-3 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
+            disabled={submitting}
+            className="w-full py-4 bg-[#1a1f2e] hover:bg-[#252a3a] border border-gray-700 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 text-white"
           >
             {submitting ? (
               <>
@@ -1457,23 +1404,17 @@ function TradeOfferModal({
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Submitting...
+                Sending...
               </>
             ) : (
-              'Submit Trade Offer'
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+                Send Offer
+              </>
             )}
           </button>
-
-          {/* Beg button - DM the seller */}
-          <div className="text-center pt-2">
-            <span className="text-gray-500 text-sm">or try to </span>
-            <a
-              href={`/account/messages?merchant=${product.store.ownerId || product.store.id}`}
-              className="text-orange-400 hover:text-orange-300 text-sm font-medium transition-colors"
-            >
-              [beg]
-            </a>
-          </div>
         </div>
       </div>
     </div>

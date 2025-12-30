@@ -432,12 +432,34 @@ export default function CheckoutPage() {
       const txSignature = await wallet.sendTransaction(transaction, connection);
       console.log('Transaction sent:', txSignature);
 
-      // 5. Wait for confirmation
-      await connection.confirmTransaction({
-        signature: txSignature,
-        blockhash,
-        lastValidBlockHeight,
-      });
+      // 5. Wait for confirmation with retry logic
+      let confirmed = false;
+      let attempts = 0;
+      const maxAttempts = 30; // 30 attempts * 2 seconds = 60 seconds max
+
+      while (!confirmed && attempts < maxAttempts) {
+        try {
+          const status = await connection.getSignatureStatus(txSignature);
+          if (status?.value?.confirmationStatus === 'confirmed' || status?.value?.confirmationStatus === 'finalized') {
+            confirmed = true;
+            console.log('Transaction confirmed:', status.value.confirmationStatus);
+          } else if (status?.value?.err) {
+            throw new Error('Transaction failed on chain');
+          } else {
+            // Wait 2 seconds before checking again
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            attempts++;
+          }
+        } catch (statusErr) {
+          console.log('Status check attempt', attempts, statusErr);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          attempts++;
+        }
+      }
+
+      if (!confirmed) {
+        throw new Error('Transaction confirmation timed out. Please check your wallet - the transaction may still complete.');
+      }
 
       // 6. Confirm payment with backend
       const confirmRes = await fetch(`/api/orders/${orderData.orders[0].id}/pay`, {
@@ -1337,15 +1359,12 @@ export default function CheckoutPage() {
                   <div className="flex justify-between items-start">
                     <span className="text-white font-semibold">Total</span>
                     <div className="text-right">
-                      <span className={`font-bold text-lg ${paymentCurrency === 'USDC' ? 'text-green-400' : 'text-purple-400'}`}>
-                        {paymentCurrency === 'USDC'
-                          ? `$${totalUsdc.toFixed(2)} USDC`
-                          : `${(totalUsdc / solPrice).toFixed(4)} SOL`
-                        }
+                      <span className="font-bold text-lg text-green-400">
+                        ${totalUsdc.toFixed(2)} USDC
                       </span>
-                      {paymentCurrency === 'SOL' && (
-                        <p className="text-xs text-gray-500">≈ ${totalUsdc.toFixed(2)} USD</p>
-                      )}
+                      <p className="text-sm text-gray-400 mt-1">
+                        or <span className="text-purple-400 font-medium">{priceLoading ? '...' : `${(totalUsdc / solPrice).toFixed(4)} SOL`}</span>
+                      </p>
                     </div>
                   </div>
                 </div>

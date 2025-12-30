@@ -28,6 +28,14 @@ interface StoreData {
   twitterUrl: string | null;
   discordUrl: string | null;
   telegramUrl: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  businessName: string | null;
+  businessAddress: string | null;
+  businessCity: string | null;
+  businessState: string | null;
+  businessZip: string | null;
+  businessCountry: string | null;
   status: string;
 }
 
@@ -53,6 +61,16 @@ export default function MerchantSettings() {
   const [telegramUrl, setTelegramUrl] = useState('');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [bannerUrl, setBannerUrl] = useState<string | null>(null);
+
+  // Shipping info state (required for labels)
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [businessName, setBusinessName] = useState('');
+  const [businessAddress, setBusinessAddress] = useState('');
+  const [businessCity, setBusinessCity] = useState('');
+  const [businessState, setBusinessState] = useState('');
+  const [businessZip, setBusinessZip] = useState('');
+  const [businessCountry, setBusinessCountry] = useState('US');
 
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
@@ -83,6 +101,15 @@ export default function MerchantSettings() {
           setTelegramUrl(data.store.telegramUrl || '');
           setLogoUrl(data.store.logoUrl);
           setBannerUrl(data.store.bannerUrl);
+          // Shipping info
+          setContactEmail(data.store.contactEmail || '');
+          setContactPhone(data.store.contactPhone || '');
+          setBusinessName(data.store.businessName || '');
+          setBusinessAddress(data.store.businessAddress || '');
+          setBusinessCity(data.store.businessCity || '');
+          setBusinessState(data.store.businessState || '');
+          setBusinessZip(data.store.businessZip || '');
+          setBusinessCountry(data.store.businessCountry || 'US');
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load store');
@@ -168,6 +195,15 @@ export default function MerchantSettings() {
           telegramUrl: telegramUrl || null,
           logoUrl,
           bannerUrl,
+          // Shipping info
+          contactEmail: contactEmail || null,
+          contactPhone: contactPhone || null,
+          businessName: businessName || null,
+          businessAddress: businessAddress || null,
+          businessCity: businessCity || null,
+          businessState: businessState || null,
+          businessZip: businessZip || null,
+          businessCountry: businessCountry || 'US',
         }),
       });
 
@@ -389,6 +425,133 @@ export default function MerchantSettings() {
               This is where your earnings will be sent. Double-check the address!
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Shipping Info (Required for Labels) */}
+      <div className="bg-[#111827] border border-purple-500/30 rounded-xl">
+        <div className="px-6 py-4 border-b border-gray-800 bg-purple-500/5">
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <Store className="w-5 h-5 text-purple-400" />
+            Shipping Info
+            <span className="text-xs bg-purple-600 text-white px-2 py-0.5 rounded-full ml-2">Required for Labels</span>
+          </h2>
+          <p className="text-gray-400 text-sm mt-1">This information is required to purchase shipping labels through Shippo.</p>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Contact Email <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="email"
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
+                placeholder="you@email.com"
+                className="w-full px-4 py-2.5 bg-[#1f2937] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Contact Phone <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="tel"
+                value={contactPhone}
+                onChange={(e) => setContactPhone(e.target.value)}
+                placeholder="+1 555-555-5555"
+                className="w-full px-4 py-2.5 bg-[#1f2937] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Business Name
+            </label>
+            <input
+              type="text"
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
+              placeholder="Your Business Name (shown on shipping labels)"
+              className="w-full px-4 py-2.5 bg-[#1f2937] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Business Address <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              value={businessAddress}
+              onChange={(e) => setBusinessAddress(e.target.value)}
+              placeholder="123 Main Street"
+              className="w-full px-4 py-2.5 bg-[#1f2937] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                City <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                value={businessCity}
+                onChange={(e) => setBusinessCity(e.target.value)}
+                placeholder="City"
+                className="w-full px-4 py-2.5 bg-[#1f2937] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                State <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                value={businessState}
+                onChange={(e) => setBusinessState(e.target.value)}
+                placeholder="CA"
+                maxLength={2}
+                className="w-full px-4 py-2.5 bg-[#1f2937] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 uppercase"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                ZIP Code <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                value={businessZip}
+                onChange={(e) => setBusinessZip(e.target.value)}
+                placeholder="90001"
+                className="w-full px-4 py-2.5 bg-[#1f2937] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Country
+              </label>
+              <select
+                value={businessCountry}
+                onChange={(e) => setBusinessCountry(e.target.value)}
+                className="w-full px-4 py-2.5 bg-[#1f2937] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
+              >
+                <option value="US">United States</option>
+                <option value="CA">Canada</option>
+              </select>
+            </div>
+          </div>
+
+          {(!contactEmail || !contactPhone || !businessAddress || !businessCity || !businessState || !businessZip) && (
+            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+              <p className="text-sm text-yellow-300">
+                ⚠️ Complete all required fields to purchase shipping labels
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

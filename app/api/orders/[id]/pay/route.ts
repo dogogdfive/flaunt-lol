@@ -215,6 +215,24 @@ export async function POST(
       },
     });
 
+    // Create pending payout for merchant
+    const merchantWallet = order.store.payoutWallet || order.store.owner?.walletAddress;
+    if (merchantWallet) {
+      await prisma.payout.create({
+        data: {
+          storeId: order.storeId,
+          amount: order.merchantAmount,
+          currency: order.paymentCurrency as 'SOL' | 'USDC',
+          status: 'PENDING',
+          walletAddress: merchantWallet,
+          orderCount: 1,
+          orders: {
+            connect: { id: order.id },
+          },
+        },
+      });
+    }
+
     // Clear the user's cart now that payment is confirmed
     await prisma.cartItem.deleteMany({
       where: { userId: user.id },

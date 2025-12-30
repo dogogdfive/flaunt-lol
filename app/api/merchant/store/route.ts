@@ -52,6 +52,15 @@ export async function GET(request: NextRequest) {
         twitterUrl: store.twitterUrl,
         discordUrl: store.discordUrl,
         telegramUrl: store.telegramUrl,
+        // Shipping info
+        contactEmail: store.contactEmail,
+        contactPhone: store.contactPhone,
+        businessName: store.businessName,
+        businessAddress: store.businessAddress,
+        businessCity: store.businessCity,
+        businessState: store.businessState,
+        businessZip: store.businessZip,
+        businessCountry: store.businessCountry,
         totalSales: Number(store.totalSales),
         totalOrders: store.totalOrders,
         productCount: store._count.products,
@@ -85,6 +94,15 @@ export async function PATCH(request: NextRequest) {
       twitterUrl,
       discordUrl,
       telegramUrl,
+      // Shipping info
+      contactEmail,
+      contactPhone,
+      businessName,
+      businessAddress,
+      businessCity,
+      businessState,
+      businessZip,
+      businessCountry,
     } = body;
 
     // Get merchant's store
@@ -123,6 +141,15 @@ export async function PATCH(request: NextRequest) {
     if (twitterUrl !== undefined) updateData.twitterUrl = twitterUrl;
     if (discordUrl !== undefined) updateData.discordUrl = discordUrl;
     if (telegramUrl !== undefined) updateData.telegramUrl = telegramUrl;
+    // Shipping info
+    if (contactEmail !== undefined) updateData.contactEmail = contactEmail;
+    if (contactPhone !== undefined) updateData.contactPhone = contactPhone;
+    if (businessName !== undefined) updateData.businessName = businessName;
+    if (businessAddress !== undefined) updateData.businessAddress = businessAddress;
+    if (businessCity !== undefined) updateData.businessCity = businessCity;
+    if (businessState !== undefined) updateData.businessState = businessState;
+    if (businessZip !== undefined) updateData.businessZip = businessZip;
+    if (businessCountry !== undefined) updateData.businessCountry = businessCountry;
 
     // Update the store
     const updatedStore = await prisma.store.update({

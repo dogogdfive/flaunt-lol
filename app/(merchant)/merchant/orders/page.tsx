@@ -24,6 +24,7 @@ import {
   Tag,
   StickyNote,
   DollarSign,
+  Loader2,
 } from 'lucide-react';
 import { showSuccess, showError } from '@/lib/toast';
 import { logger } from '@/lib/logger';
@@ -249,8 +250,10 @@ export default function MerchantOrders() {
           } : o)
         );
         setShowLabelModal(false);
+        setShowFulfillModal(false);
         setSelectedRate(null);
         setShippingRates([]);
+        showSuccess('Label purchased! Order marked as shipped.');
       } else {
         setFulfillError(data.error || 'Failed to purchase label');
       }
@@ -597,13 +600,15 @@ export default function MerchantOrders() {
       {/* Fulfill Order Modal */}
       {showFulfillModal && selectedOrder && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111827] border border-gray-800 rounded-xl w-full max-w-lg">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
+          <div className="bg-[#111827] border border-gray-800 rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800 sticky top-0 bg-[#111827]">
               <h2 className="text-lg font-semibold text-white">Fulfill Order {selectedOrder.orderNumber}</h2>
               <button
                 onClick={() => {
                   setShowFulfillModal(false);
                   setFulfillError('');
+                  setShippingRates([]);
+                  setSelectedRate(null);
                 }}
                 className="p-2 text-gray-400 hover:text-white hover:bg-[#1f2937] rounded-lg"
               >
@@ -617,9 +622,89 @@ export default function MerchantOrders() {
                   {fulfillError}
                 </div>
               )}
-              
+
+              {/* Ship to address */}
+              <div className="bg-[#1f2937] rounded-lg p-4">
+                <div className="text-sm font-medium text-gray-300 mb-2">Ship to:</div>
+                <div className="text-sm text-gray-400">
+                  {selectedOrder.shippingAddress?.name}<br />
+                  {selectedOrder.shippingAddress?.line1}<br />
+                  {selectedOrder.shippingAddress?.line2 && <>{selectedOrder.shippingAddress.line2}<br /></>}
+                  {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state} {selectedOrder.shippingAddress?.postalCode}<br />
+                  {selectedOrder.shippingAddress?.country}
+                </div>
+              </div>
+
+              {/* Buy Label Section */}
+              <div className="border border-purple-500/30 rounded-lg p-4 bg-purple-500/5">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-purple-400">Buy Shipping Label</h3>
+                  {!shippingRates.length && !ratesLoading && (
+                    <button
+                      onClick={fetchShippingRates}
+                      className="px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 transition-colors"
+                    >
+                      Get Rates
+                    </button>
+                  )}
+                </div>
+
+                {ratesLoading && (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
+                    <span className="ml-2 text-gray-400 text-sm">Fetching rates...</span>
+                  </div>
+                )}
+
+                {shippingRates.length > 0 && (
+                  <div className="space-y-2">
+                    {shippingRates.map((rate) => (
+                      <button
+                        key={rate.id}
+                        onClick={() => setSelectedRate(rate.id)}
+                        className={`w-full p-3 rounded-lg border text-left transition-colors ${
+                          selectedRate === rate.id
+                            ? 'border-purple-500 bg-purple-500/10'
+                            : 'border-gray-700 hover:border-gray-600'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-white font-medium text-sm">{rate.provider} - {rate.service}</div>
+                            <div className="text-gray-500 text-xs">{rate.estimatedDays} business days</div>
+                          </div>
+                          <div className="text-green-400 font-semibold">${rate.price}</div>
+                        </div>
+                      </button>
+                    ))}
+                    <button
+                      onClick={purchaseShippingLabel}
+                      disabled={!selectedRate || labelLoading}
+                      className="w-full mt-3 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors font-medium"
+                    >
+                      {labelLoading ? 'Purchasing...' : 'Purchase Label & Ship'}
+                    </button>
+                  </div>
+                )}
+
+                {!shippingRates.length && !ratesLoading && (
+                  <p className="text-gray-500 text-xs">Click "Get Rates" to see shipping options from USPS, UPS, FedEx, and more.</p>
+                )}
+              </div>
+
+              {/* Divider */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-700"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-3 bg-[#111827] text-gray-500">or enter tracking manually</span>
+                </div>
+              </div>
+
+              {/* Manual Tracking Section */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Tracking Number *</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Tracking Number</label>
                 <input
                   type="text"
                   value={trackingNumber}
@@ -630,7 +715,7 @@ export default function MerchantOrders() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Carrier</label>
-                <select 
+                <select
                   value={selectedCarrier}
                   onChange={(e) => setSelectedCarrier(e.target.value)}
                   className="w-full px-4 py-2.5 bg-[#1f2937] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
@@ -640,7 +725,7 @@ export default function MerchantOrders() {
                   ))}
                 </select>
               </div>
-              
+
               {selectedCarrier === 'other' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Tracking URL</label>
@@ -653,40 +738,31 @@ export default function MerchantOrders() {
                   />
                 </div>
               )}
-              
-              <div className="bg-[#1f2937] rounded-lg p-4">
-                <div className="text-sm font-medium text-gray-300 mb-2">Ship to:</div>
-                <div className="text-sm text-gray-400">
-                  {selectedOrder.shippingAddress?.name}<br />
-                  {selectedOrder.shippingAddress?.line1}<br />
-                  {selectedOrder.shippingAddress?.line2 && <>{selectedOrder.shippingAddress.line2}<br /></>}
-                  {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state} {selectedOrder.shippingAddress?.postalCode}<br />
-                  {selectedOrder.shippingAddress?.country}
-                </div>
-              </div>
-              
+
               <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
                 <p className="text-sm text-blue-300">
-                  ✓ Customer will be notified automatically when you add tracking
+                  Customer will be notified automatically when you add tracking
                 </p>
               </div>
             </div>
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-800">
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-800 sticky bottom-0 bg-[#111827]">
               <button
                 onClick={() => {
                   setShowFulfillModal(false);
                   setFulfillError('');
+                  setShippingRates([]);
+                  setSelectedRate(null);
                 }}
                 className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={handleFulfillOrder}
                 disabled={fulfillLoading || !trackingNumber.trim()}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
               >
-                {fulfillLoading ? 'Saving...' : 'Mark as Shipped'}
+                {fulfillLoading ? 'Saving...' : 'Add Tracking & Ship'}
               </button>
             </div>
           </div>

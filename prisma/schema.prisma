@@ -83,6 +83,13 @@ model Store {
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
   contactEmail     String?           @map("contact_email")
+  contactPhone     String?           @map("contact_phone")
+  businessName     String?           @map("business_name")
+  businessAddress  String?           @map("business_address")
+  businessCity     String?           @map("business_city")
+  businessState    String?           @map("business_state")
+  businessZip      String?           @map("business_zip")
+  businessCountry  String?           @default("US") @map("business_country")
   collections      Collection[]
   messages         Message[]
   orders           Order[]

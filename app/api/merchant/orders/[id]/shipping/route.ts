@@ -26,7 +26,15 @@ export async function GET(
           select: {
             ownerId: true,
             owner: { select: { walletAddress: true } },
+            name: true,
             contactEmail: true,
+            contactPhone: true,
+            businessName: true,
+            businessAddress: true,
+            businessCity: true,
+            businessState: true,
+            businessZip: true,
+            businessCountry: true,
           },
         },
         items: true,
@@ -47,14 +55,40 @@ export async function GET(
       return NextResponse.json({ error: 'No shipping address on order' }, { status: 400 });
     }
 
-    // Get merchant's from address from store settings or use default
+    // Check if store has required shipping info
+    const store = order.store;
+    if (!store.contactEmail || !store.contactPhone) {
+      return NextResponse.json({
+        error: 'Seller info missing. Please add your email and phone number in Store Settings before purchasing labels.',
+        missingFields: {
+          email: !store.contactEmail,
+          phone: !store.contactPhone,
+        }
+      }, { status: 400 });
+    }
+
+    if (!store.businessAddress || !store.businessCity || !store.businessState || !store.businessZip) {
+      return NextResponse.json({
+        error: 'Business address missing. Please add your business address in Store Settings before purchasing labels.',
+        missingFields: {
+          address: !store.businessAddress,
+          city: !store.businessCity,
+          state: !store.businessState,
+          zip: !store.businessZip,
+        }
+      }, { status: 400 });
+    }
+
+    // Use merchant's business address for shipping from
     const fromAddress = {
-      name: order.store.contactEmail ? 'Store' : 'Flaunt.lol Seller',
-      street1: process.env.STORE_ADDRESS_LINE1 || '123 Main St',
-      city: process.env.STORE_CITY || 'Los Angeles',
-      state: process.env.STORE_STATE || 'CA',
-      zip: process.env.STORE_ZIP || '90001',
-      country: process.env.STORE_COUNTRY || 'US',
+      name: store.businessName || store.name,
+      street1: store.businessAddress,
+      city: store.businessCity,
+      state: store.businessState,
+      zip: store.businessZip,
+      country: store.businessCountry || 'US',
+      email: store.contactEmail,
+      phone: store.contactPhone,
     };
 
     const toAddress = {

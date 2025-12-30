@@ -314,7 +314,7 @@ export default function CheckoutPage() {
             phone: shippingForm.phone || undefined,
           },
           email: shippingForm.email,
-          currency: 'USDC',
+          currency: paymentCurrency,
         }),
       });
 
@@ -326,44 +326,87 @@ export default function CheckoutPage() {
         throw new Error(orderData.error || 'Failed to create order');
       }
 
-      console.log('Building USDC transaction...');
-      // 3. Send USDC payment transaction
+      console.log(`Building ${paymentCurrency} transaction...`);
+      // 3. Send payment transaction
       const connection = new Connection(SOLANA_RPC, 'confirmed');
       const platformPubkey = new PublicKey(platformWallet);
       const payerPubkey = publicKey;
 
-      // USDC transfer amount
-      const amount = Math.floor(totalUsdc * Math.pow(10, USDC_DECIMALS));
+      let transaction: Transaction;
 
-      const fromTokenAccount = await getAssociatedTokenAddress(USDC_MINT, payerPubkey);
-      const toTokenAccount = await getAssociatedTokenAddress(USDC_MINT, platformPubkey);
+      if (paymentCurrency === 'SOL') {
+        // SOL transfer
+        const solAmount = totalUsdc / solPrice;
+        const lamports = Math.floor(solAmount * LAMPORTS_PER_SOL);
 
-      // Check if platform's token account exists
-      let instructions = [];
-      try {
-        await getAccount(connection, toTokenAccount);
-      } catch {
-        // Create associated token account for platform if it doesn't exist
+        // Check SOL balance
+        const balance = await connection.getBalance(payerPubkey);
+        const balanceInSol = balance / LAMPORTS_PER_SOL;
+        console.log('Sender SOL balance:', balanceInSol);
+
+        if (balance < lamports + 5000) { // 5000 lamports for fees
+          throw new Error(`Insufficient SOL balance. You have ${balanceInSol.toFixed(4)} SOL but need ${solAmount.toFixed(4)} SOL plus fees.`);
+        }
+
+        transaction = new Transaction().add(
+          SystemProgram.transfer({
+            fromPubkey: payerPubkey,
+            toPubkey: platformPubkey,
+            lamports,
+          })
+        );
+      } else {
+        // USDC transfer
+        const amount = Math.floor(totalUsdc * Math.pow(10, USDC_DECIMALS));
+
+        const fromTokenAccount = await getAssociatedTokenAddress(USDC_MINT, payerPubkey);
+        const toTokenAccount = await getAssociatedTokenAddress(USDC_MINT, platformPubkey);
+
+        // Check if sender has USDC token account and sufficient balance
+        console.log('Checking sender USDC account...');
+        try {
+          const senderAccount = await getAccount(connection, fromTokenAccount);
+          const balance = Number(senderAccount.amount) / Math.pow(10, USDC_DECIMALS);
+          console.log('Sender USDC balance:', balance);
+          if (balance < totalUsdc) {
+            throw new Error(`Insufficient USDC balance. You have $${balance.toFixed(2)} but need $${totalUsdc.toFixed(2)}`);
+          }
+        } catch (err: any) {
+          if (err.message?.includes('Insufficient USDC')) {
+            throw err;
+          }
+          console.error('Sender USDC account error:', err);
+          throw new Error('You need USDC in your wallet to complete this purchase. Please add USDC to your wallet first.');
+        }
+
+        // Check if platform's token account exists
+        let instructions = [];
+        try {
+          await getAccount(connection, toTokenAccount);
+        } catch {
+          // Create associated token account for platform if it doesn't exist
+          console.log('Creating platform USDC token account...');
+          instructions.push(
+            createAssociatedTokenAccountInstruction(
+              payerPubkey,
+              toTokenAccount,
+              platformPubkey,
+              USDC_MINT
+            )
+          );
+        }
+
         instructions.push(
-          createAssociatedTokenAccountInstruction(
-            payerPubkey,
+          createTransferInstruction(
+            fromTokenAccount,
             toTokenAccount,
-            platformPubkey,
-            USDC_MINT
+            payerPubkey,
+            amount
           )
         );
+
+        transaction = new Transaction().add(...instructions);
       }
-
-      instructions.push(
-        createTransferInstruction(
-          fromTokenAccount,
-          toTokenAccount,
-          payerPubkey,
-          amount
-        )
-      );
-
-      const transaction = new Transaction().add(...instructions);
 
       // Get recent blockhash
       console.log('Getting blockhash...');
@@ -405,11 +448,27 @@ export default function CheckoutPage() {
 
     } catch (err: any) {
       console.error('Checkout error:', err);
-      // Handle user rejection
+      // Handle specific errors
       if (err.message?.includes('User rejected') || err.message?.includes('rejected')) {
         setError('Transaction cancelled');
+      } else if (err.message?.includes('Insufficient USDC') || err.message?.includes('need USDC')) {
+        setError(err.message);
+      } else if (err.message?.includes('Insufficient SOL balance')) {
+        setError(err.message);
+      } else if (err.message?.includes('insufficient funds') || err.message?.includes('0x1')) {
+        setError('Insufficient balance for transaction. Please check your wallet.');
+      } else if (err.message?.includes('blockhash') || err.message?.includes('expired')) {
+        setError('Transaction expired. Please try again.');
+      } else if (err.message?.includes('Transaction simulation failed')) {
+        // Parse the simulation error for more details
+        const match = err.message.match(/Error Message: ([^.]+)/);
+        if (match) {
+          setError(`Transaction failed: ${match[1]}`);
+        } else {
+          setError('Transaction simulation failed. Please check your balance and try again.');
+        }
       } else {
-        setError(err instanceof Error ? err.message : 'Checkout failed');
+        setError(err instanceof Error ? err.message : 'Checkout failed. Please try again.');
       }
     } finally {
       setCheckoutLoading(false);
@@ -883,18 +942,50 @@ export default function CheckoutPage() {
                     </button>
                   </div>
 
-                  {/* Payment Currency - USDC Only */}
+                  {/* Payment Currency Toggle */}
                   <div className="mb-6">
-                    <div className="p-4 rounded-xl border border-green-500/30 bg-green-900/20">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-teal-600 rounded-lg flex items-center justify-center">
-                          <span className="text-white font-bold text-lg">$</span>
+                    <h3 className="text-white font-medium mb-3">Pay with</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setPaymentCurrency('USDC')}
+                        disabled={!!pendingOrder}
+                        className={`p-4 rounded-xl border text-left transition-all ${
+                          paymentCurrency === 'USDC'
+                            ? 'border-green-500/50 bg-green-900/20'
+                            : 'border-gray-700 bg-[#1f2937] hover:border-gray-600'
+                        } ${pendingOrder ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-teal-600 rounded-lg flex items-center justify-center">
+                            <span className="text-white font-bold text-lg">$</span>
+                          </div>
+                          <div>
+                            <div className="font-medium text-white">USDC</div>
+                            <div className="text-sm text-gray-400">${totalUsdc.toFixed(2)}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="font-medium text-white">Pay with USDC</div>
-                          <div className="text-sm text-gray-400">${totalUsdc.toFixed(2)} USDC</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentCurrency('SOL')}
+                        disabled={!!pendingOrder}
+                        className={`p-4 rounded-xl border text-left transition-all ${
+                          paymentCurrency === 'SOL'
+                            ? 'border-purple-500/50 bg-purple-900/20'
+                            : 'border-gray-700 bg-[#1f2937] hover:border-gray-600'
+                        } ${pendingOrder ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                            <span className="text-white font-bold text-lg">◎</span>
+                          </div>
+                          <div>
+                            <div className="font-medium text-white">SOL</div>
+                            <div className="text-sm text-gray-400">{priceLoading ? '...' : `${(totalUsdc / solPrice).toFixed(4)} SOL`}</div>
+                          </div>
                         </div>
-                      </div>
+                      </button>
                     </div>
                   </div>
 
@@ -943,13 +1034,23 @@ export default function CheckoutPage() {
 
                   {/* Connected Wallet Payment */}
                   {paymentMethod === 'connected' && (
-                    <div className="rounded-xl p-6 mb-6 bg-gradient-to-br from-green-500/10 to-teal-500/10 border border-green-500/20">
+                    <div className={`rounded-xl p-6 mb-6 ${
+                      paymentCurrency === 'USDC'
+                        ? 'bg-gradient-to-br from-green-500/10 to-teal-500/10 border border-green-500/20'
+                        : 'bg-gradient-to-br from-purple-500/10 to-indigo-500/10 border border-purple-500/20'
+                    }`}>
                       <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-green-500 to-teal-600">
-                          <span className="text-white font-bold">$</span>
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          paymentCurrency === 'USDC'
+                            ? 'bg-gradient-to-br from-green-500 to-teal-600'
+                            : 'bg-gradient-to-br from-purple-500 to-indigo-600'
+                        }`}>
+                          <span className="text-white font-bold">{paymentCurrency === 'USDC' ? '$' : '◎'}</span>
                         </div>
                         <div>
-                          <h3 className="text-white font-medium">Pay with USD Coin (USDC)</h3>
+                          <h3 className="text-white font-medium">
+                            Pay with {paymentCurrency === 'USDC' ? 'USD Coin (USDC)' : 'Solana (SOL)'}
+                          </h3>
                           <p className="text-sm text-gray-400">Fast, secure blockchain payment</p>
                         </div>
                       </div>
@@ -959,9 +1060,15 @@ export default function CheckoutPage() {
 
                       <div className="bg-[#0a0e1a] rounded-lg p-3">
                         <p className="text-xs text-gray-500 mb-1">Amount to Pay:</p>
-                        <code className="text-lg font-mono text-green-400">
-                          ${totalUsdc.toFixed(2)} USDC
+                        <code className={`text-lg font-mono ${paymentCurrency === 'USDC' ? 'text-green-400' : 'text-purple-400'}`}>
+                          {paymentCurrency === 'USDC'
+                            ? `$${totalUsdc.toFixed(2)} USDC`
+                            : `${(totalUsdc / solPrice).toFixed(4)} SOL`
+                          }
                         </code>
+                        {paymentCurrency === 'SOL' && (
+                          <p className="text-xs text-gray-500 mt-1">≈ ${totalUsdc.toFixed(2)} USD</p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -1126,7 +1233,11 @@ export default function CheckoutPage() {
                       <button
                         onClick={handleCheckout}
                         disabled={checkoutLoading}
-                        className="flex-1 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-700 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+                        className={`flex-1 py-3 ${
+                          paymentCurrency === 'USDC'
+                            ? 'bg-green-600 hover:bg-green-700'
+                            : 'bg-purple-600 hover:bg-purple-700'
+                        } disabled:bg-gray-700 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2`}
                       >
                         {checkoutLoading ? (
                           <>
@@ -1136,7 +1247,10 @@ export default function CheckoutPage() {
                         ) : (
                           <>
                             <Wallet className="w-5 h-5" />
-                            Pay ${totalUsdc.toFixed(2)} USDC
+                            {paymentCurrency === 'USDC'
+                              ? `Pay $${totalUsdc.toFixed(2)} USDC`
+                              : `Pay ${(totalUsdc / solPrice).toFixed(4)} SOL`
+                            }
                           </>
                         )}
                       </button>
@@ -1223,9 +1337,17 @@ export default function CheckoutPage() {
                 <div className="border-t border-gray-700 pt-4 mt-4">
                   <div className="flex justify-between items-start">
                     <span className="text-white font-semibold">Total</span>
-                    <span className="font-bold text-lg text-green-400">
-                      ${totalUsdc.toFixed(2)} USDC
-                    </span>
+                    <div className="text-right">
+                      <span className={`font-bold text-lg ${paymentCurrency === 'USDC' ? 'text-green-400' : 'text-purple-400'}`}>
+                        {paymentCurrency === 'USDC'
+                          ? `$${totalUsdc.toFixed(2)} USDC`
+                          : `${(totalUsdc / solPrice).toFixed(4)} SOL`
+                        }
+                      </span>
+                      {paymentCurrency === 'SOL' && (
+                        <p className="text-xs text-gray-500">≈ ${totalUsdc.toFixed(2)} USD</p>
+                      )}
+                    </div>
                   </div>
                 </div>
 

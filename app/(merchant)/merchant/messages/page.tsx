@@ -439,11 +439,28 @@ export default function MerchantMessagesPage() {
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.map((msg) => {
                   const isMe = msg.sender.id === currentUserId;
+                  const isAdmin = msg.sender.role === 'ADMIN' || msg.sender.role === 'SUPER_ADMIN';
                   return (
                     <div
                       key={msg.id}
-                      className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+                      className={`flex items-end gap-2 ${isMe ? 'justify-end' : 'justify-start'}`}
                     >
+                      {/* Avatar for other person (admin or buyer) */}
+                      {!isMe && (
+                        msg.sender.avatarUrl ? (
+                          <img
+                            src={msg.sender.avatarUrl}
+                            alt=""
+                            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isAdmin ? 'bg-gradient-to-br from-purple-500 to-pink-600' : 'bg-purple-600'}`}>
+                            <span className="text-white text-xs font-medium">
+                              {msg.sender.username?.charAt(0)?.toUpperCase() || msg.sender.name?.charAt(0)?.toUpperCase() || (isAdmin ? 'A' : 'B')}
+                            </span>
+                          </div>
+                        )
+                      )}
                       <div
                         className={`max-w-[70%] rounded-lg p-3 ${
                           isMe
@@ -456,6 +473,22 @@ export default function MerchantMessagesPage() {
                           {formatDate(msg.createdAt)}
                         </p>
                       </div>
+                      {/* Avatar for me (merchant) */}
+                      {isMe && (
+                        msg.sender.avatarUrl ? (
+                          <img
+                            src={msg.sender.avatarUrl}
+                            alt=""
+                            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                            <span className="text-white text-xs font-medium">
+                              {msg.sender.username?.charAt(0)?.toUpperCase() || 'M'}
+                            </span>
+                          </div>
+                        )
+                      )}
                     </div>
                   );
                 })}

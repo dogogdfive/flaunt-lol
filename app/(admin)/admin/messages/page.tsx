@@ -24,12 +24,16 @@ interface Message {
     id: string;
     walletAddress?: string;
     name?: string;
+    username?: string;
+    avatarUrl?: string | null;
     role: string;
   };
   receiver: {
     id: string;
     walletAddress?: string;
     name?: string;
+    username?: string;
+    avatarUrl?: string | null;
     role: string;
   };
   store?: {
@@ -42,6 +46,8 @@ interface Conversation {
   id: string;
   walletAddress?: string;
   name?: string;
+  username?: string;
+  avatarUrl?: string | null;
   role: string;
   unreadCount: number;
   lastMessageAt?: string;
@@ -52,6 +58,8 @@ interface Merchant {
   id: string;
   walletAddress?: string;
   name?: string;
+  username?: string;
+  avatarUrl?: string | null;
   stores: { id: string; name: string; slug: string }[];
 }
 
@@ -154,6 +162,8 @@ export default function AdminMessagesPage() {
               id: store.owner.id,
               walletAddress: store.owner.walletAddress,
               name: store.owner.name,
+              username: store.owner.username,
+              avatarUrl: store.owner.avatarUrl,
               stores: [{ id: store.id, name: store.name, slug: store.slug }],
             });
           }
@@ -244,6 +254,8 @@ export default function AdminMessagesPage() {
       id: merchant.id,
       walletAddress: merchant.walletAddress,
       name: merchant.name,
+      username: merchant.username,
+      avatarUrl: merchant.avatarUrl,
       role: 'MERCHANT',
       unreadCount: 0,
       stores: merchant.stores,
@@ -339,9 +351,17 @@ export default function AdminMessagesPage() {
                     onClick={() => startNewConversation(merchant)}
                     className="w-full p-3 text-left hover:bg-[#1f2937] rounded-lg transition-colors flex items-start gap-3"
                   >
-                    <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
-                      <Store className="w-5 h-5 text-white" />
-                    </div>
+                    {merchant.avatarUrl ? (
+                      <img
+                        src={merchant.avatarUrl}
+                        alt=""
+                        className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
+                        {merchant.username?.charAt(0)?.toUpperCase() || merchant.name?.charAt(0)?.toUpperCase() || <Store className="w-5 h-5 text-white" />}
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       {merchant.stores && merchant.stores.length > 1 ? (
                         <>
@@ -392,13 +412,21 @@ export default function AdminMessagesPage() {
                     selectedConversation?.id === conv.id ? 'bg-[#1f2937]' : ''
                   }`}
                 >
-                  <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center">
-                    <Store className="w-5 h-5 text-white" />
-                  </div>
+                  {conv.avatarUrl ? (
+                    <img
+                      src={conv.avatarUrl}
+                      alt=""
+                      className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
+                      {conv.username?.charAt(0)?.toUpperCase() || conv.name?.charAt(0)?.toUpperCase() || <Store className="w-5 h-5 text-white" />}
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <span className="text-white font-medium truncate">
-                        {conv.stores?.[0]?.name || conv.name || 'Merchant'}
+                        {conv.stores?.[0]?.name || (conv.username ? `@${conv.username}` : conv.name) || 'Merchant'}
                       </span>
                       {conv.unreadCount > 0 && (
                         <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
@@ -428,15 +456,23 @@ export default function AdminMessagesPage() {
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
-                <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center">
-                  <Store className="w-5 h-5 text-white" />
-                </div>
+                {selectedConversation.avatarUrl ? (
+                  <img
+                    src={selectedConversation.avatarUrl}
+                    alt=""
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center">
+                    {selectedConversation.username?.charAt(0)?.toUpperCase() || selectedConversation.name?.charAt(0)?.toUpperCase() || <Store className="w-5 h-5 text-white" />}
+                  </div>
+                )}
                 <div>
                   <h3 className="text-white font-medium">
-                    {selectedConversation.stores?.[0]?.name || selectedConversation.name || 'Merchant'}
+                    {selectedConversation.stores?.[0]?.name || (selectedConversation.username ? `@${selectedConversation.username}` : selectedConversation.name) || 'Merchant'}
                   </h3>
                   <p className="text-gray-500 text-sm">
-                    {selectedConversation.walletAddress?.slice(0, 8)}...{selectedConversation.walletAddress?.slice(-4)}
+                    {selectedConversation.username ? `@${selectedConversation.username}` : `${selectedConversation.walletAddress?.slice(0, 8)}...${selectedConversation.walletAddress?.slice(-4)}`}
                   </p>
                 </div>
               </div>
@@ -448,8 +484,24 @@ export default function AdminMessagesPage() {
                   return (
                     <div
                       key={msg.id}
-                      className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+                      className={`flex items-end gap-2 ${isMe ? 'justify-end' : 'justify-start'}`}
                     >
+                      {/* Avatar for merchant (other person) */}
+                      {!isMe && (
+                        msg.sender.avatarUrl ? (
+                          <img
+                            src={msg.sender.avatarUrl}
+                            alt=""
+                            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
+                            <span className="text-white text-xs font-medium">
+                              {msg.sender.username?.charAt(0)?.toUpperCase() || msg.sender.name?.charAt(0)?.toUpperCase() || 'M'}
+                            </span>
+                          </div>
+                        )
+                      )}
                       <div
                         className={`max-w-[70%] rounded-lg p-3 ${
                           isMe
@@ -462,6 +514,22 @@ export default function AdminMessagesPage() {
                           {formatDate(msg.createdAt)}
                         </p>
                       </div>
+                      {/* Avatar for admin (me) */}
+                      {isMe && (
+                        msg.sender.avatarUrl ? (
+                          <img
+                            src={msg.sender.avatarUrl}
+                            alt=""
+                            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center flex-shrink-0">
+                            <span className="text-white text-xs font-medium">
+                              {msg.sender.username?.charAt(0)?.toUpperCase() || 'A'}
+                            </span>
+                          </div>
+                        )
+                      )}
                     </div>
                   );
                 })}

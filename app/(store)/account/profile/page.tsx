@@ -214,6 +214,9 @@ export default function ProfilePage() {
     email !== (profile?.email || '') ||
     avatarUrl !== (profile?.avatarUrl || '');
 
+  // Check if this is a new user who needs to set username
+  const needsUsername = profile && !profile.username;
+
   if (!connected) {
     return (
       <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center p-4">
@@ -239,6 +242,91 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#0a0e1a]">
+      {/* Username Required Modal for New Users */}
+      {needsUsername && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-[#111827] border border-gray-700 rounded-2xl max-w-md w-full p-6">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AtSign className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">Welcome to flaunt.lol!</h2>
+              <p className="text-gray-400">Please choose a username to get started. This is how you'll be identified on the platform.</p>
+            </div>
+
+            {/* Username Input */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Choose your username
+              </label>
+              <div className="relative">
+                <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                  placeholder="your_username"
+                  maxLength={20}
+                  autoFocus
+                  className={`w-full pl-10 pr-10 py-3 bg-[#1f2937] border rounded-xl text-white placeholder-gray-500 focus:outline-none ${
+                    usernameError
+                      ? 'border-red-500 focus:border-red-500'
+                      : usernameAvailable
+                      ? 'border-green-500 focus:border-green-500'
+                      : 'border-gray-700 focus:border-blue-500'
+                  }`}
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {checkingUsername && (
+                    <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+                  )}
+                  {!checkingUsername && usernameAvailable === true && (
+                    <Check className="w-5 h-5 text-green-500" />
+                  )}
+                  {!checkingUsername && usernameAvailable === false && (
+                    <X className="w-5 h-5 text-red-500" />
+                  )}
+                </div>
+              </div>
+              {usernameError ? (
+                <p className="text-xs text-red-400 mt-2">{usernameError}</p>
+              ) : (
+                <p className="text-xs text-gray-500 mt-2">
+                  3-20 characters, letters, numbers, and underscores only.
+                </p>
+              )}
+            </div>
+
+            {/* Error/Success Messages */}
+            {error && (
+              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-2 text-red-400">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span className="text-sm">{error}</span>
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <button
+              onClick={handleSave}
+              disabled={saving || !username || username.length < 3 || usernameAvailable === false || checkingUsername}
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Setting up...
+                </>
+              ) : (
+                <>
+                  <Check className="w-5 h-5" />
+                  Continue
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="border-b border-gray-800">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">

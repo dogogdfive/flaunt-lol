@@ -65,44 +65,6 @@ const triggerConfetti = (e: React.MouseEvent<HTMLAnchorElement>) => {
   }, 1950);
 };
 
-// Kawaii trade messages with Japanese emoticons
-const kawaiiTradeMessages = [
-  "wanna trade? ୧( ˵ ° ~ ° ˵ )୨",
-  "let's swap! (ﾉ◕ヮ◕)ﾉ*:・゚✧",
-  "trade with me~ (◕‿◕✿)",
-  "swap time! ٩(◕‿◕｡)۶",
-  "got something cool? (づ｡◕‿‿◕｡)づ",
-  "trade offer? ♡(˃͈ દ ˂͈ ༶ )",
-  "wanna exchange? (≧◡≦) ♡",
-  "let's barter! ヽ(>∀<☆)☆",
-  "trade pls~ (っ˘ω˘ς )",
-  "swap swap! ✧･ﾟ: *✧･ﾟ:*",
-  "ur item 4 mine? (◠‿◠)♡",
-  "trade time~! ₍ᐢ•ﻌ•ᐢ₎*ﾟ",
-  "let's make a deal! ♪(´ε` )",
-  "wanna swap? (✿◠‿◠)",
-  "trade offer incoming~ ٩(♡ε♡ )۶",
-  "your stuff looks cool! ( ˘▽˘)っ♨",
-  "gimme gimme~ (っ´▽`)っ",
-  "trade? trade! ⊂(◉‿◉)つ",
-  "swap with me pls (｡♥‿♥｡)",
-  "i want it! ☆*:.｡.o(≧▽≦)o.｡.:*☆",
-  "trade buddies? ヾ(＾∇＾)",
-  "let's exchange! (ノ´ヮ`)ノ*: ・゚✧",
-  "swapsies? ♡＾▽＾♡",
-  "wanna trade stuff? (◕ᴗ◕✿)",
-  "deal? deal! ٩(｡•́‿•̀｡)۶",
-  "trading hours~ ☆ﾐ(o*･ω･)ﾉ",
-  "swap offer! (ﾉ´ з `)ノ♡",
-  "trade vibes~ ✿◕ ‿ ◕✿",
-];
-
-// Kawaii floating emojis for decoration
-const kawaiiFloatingEmojis = [
-  "✧", "♡", "☆", "✿", "♪", "✦", "❀", "◕‿◕", "★", "♥",
-  "✧･ﾟ", "｡ﾟ☆", "･ﾟ✧", "♡゜", "☆゜", "✿゜",
-];
-
 // Types
 interface ProductReview {
   id: string;
@@ -825,32 +787,12 @@ export default function HomePage() {
       {/* Main Content */}
       <main className="pt-16">
         {/* Featured + Best Sellers - Two Column Layout */}
-        <section className="max-w-7xl mx-auto px-4 py-8">
+        <section className="max-w-7xl mx-auto px-4 py-6">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
             {/* Featured - Store Carousel (Left ~60%) */}
             <div className="lg:col-span-3">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold">Featured</h2>
-                {featuredStores.length > 1 && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setCurrentSlide((prev) => (prev - 1 + featuredStores.length) % featuredStores.length)}
-                      className="p-1.5 bg-[#1a1f2e] hover:bg-[#252a3a] rounded-full transition-colors"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => setCurrentSlide((prev) => (prev + 1) % featuredStores.length)}
-                      className="p-1.5 bg-[#1a1f2e] hover:bg-[#252a3a] rounded-full transition-colors"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
-                )}
+                <h2 className="text-xl font-bold text-white">Featured</h2>
               </div>
               {loading ? (
                 <div className="rounded-2xl h-[420px] bg-[#1a1f2e] animate-pulse" />
@@ -864,60 +806,41 @@ export default function HomePage() {
                       : gradientColors[currentSlide % gradientColors.length]
                   }}
                 >
-                  {/* Badge */}
+                  {/* Featured Drop Badge */}
                   <div className="absolute top-4 left-4">
-                    <span className={`px-3 py-1.5 text-xs font-semibold rounded-full ${
-                      featuredStores[currentSlide]?.isNew
-                        ? 'bg-green-500 text-black'
-                        : 'bg-blue-600 text-white'
-                    }`}>
-                      {featuredStores[currentSlide]?.isNew ? 'NEW STORE' : 'Featured Store'}
+                    <span className="px-3 py-1.5 text-xs font-semibold rounded-full bg-blue-600 text-white">
+                      Featured Drop
                     </span>
                   </div>
 
-                  {/* Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
-
-                  {/* Content */}
-                  <div className="absolute bottom-0 left-0 right-0 p-6">
-                    <div className="flex items-center gap-3 mb-3">
-                      {featuredStores[currentSlide]?.logoUrl && (
-                        <img
-                          src={featuredStores[currentSlide].logoUrl!}
-                          alt=""
-                          className="w-14 h-14 rounded-xl object-cover border-2 border-white/20"
-                        />
-                      )}
-                      <div>
-                        <h3 className="text-3xl font-bold text-white">{featuredStores[currentSlide]?.name}</h3>
-                        <p className="text-gray-300 text-sm">Exclusive merchandise</p>
-                      </div>
-                    </div>
-                    <span className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1">
-                      Visit Store
+                  {/* Carousel Arrow (Right) */}
+                  {featuredStores.length > 1 && (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setCurrentSlide((prev) => (prev + 1) % featuredStores.length);
+                      }}
+                      className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 rounded-full transition-colors"
+                    >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
+                    </button>
+                  )}
+
+                  {/* Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent" />
+
+                  {/* Content at Bottom */}
+                  <div className="absolute bottom-0 left-0 right-0 p-6">
+                    <h3 className="text-3xl font-bold text-white mb-1">{featuredStores[currentSlide]?.name}</h3>
+                    <p className="text-gray-400 text-sm mb-2">
+                      {featuredStores[currentSlide]?.isNew ? 'New Store' : 'Featured Store'}
+                    </p>
+                    <span className="text-blue-400 text-sm flex items-center gap-1">
+                      View details →
                     </span>
                   </div>
-
-                  {/* Carousel Dots */}
-                  {featuredStores.length > 1 && (
-                    <div className="absolute bottom-4 right-4 flex gap-1.5">
-                      {featuredStores.map((_, i) => (
-                        <button
-                          key={i}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setCurrentSlide(i);
-                          }}
-                          className={`w-2 h-2 rounded-full transition-colors ${
-                            i === currentSlide ? 'bg-white' : 'bg-white/30'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  )}
                 </a>
               ) : (
                 <div className="rounded-2xl h-[420px] bg-[#1a1f2e] flex items-center justify-center text-gray-500">
@@ -929,7 +852,7 @@ export default function HomePage() {
             {/* Best Sellers - 2x2 Grid (Right ~40%) */}
             <div className="lg:col-span-2">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold">Best Sellers</h2>
+                <h2 className="text-xl font-bold text-white">Best Sellers</h2>
                 <a href="/products?sort=popular" className="text-gray-400 hover:text-white text-sm">
                   See All
                 </a>
@@ -955,44 +878,37 @@ export default function HomePage() {
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-3xl">🛍️</div>
                         )}
+                        {/* Favorite Heart */}
+                        <button
+                          onClick={(e) => toggleWishlist(product.id, e)}
+                          className={`absolute top-2 right-2 p-1.5 rounded-full transition-all ${
+                            wishlistIds.has(product.id)
+                              ? 'bg-pink-500 text-white'
+                              : 'bg-black/50 text-white hover:bg-black/70'
+                          }`}
+                        >
+                          <svg className="w-4 h-4" fill={wishlistIds.has(product.id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                          </svg>
+                        </button>
                       </div>
                       {/* Info */}
                       <div className="p-3">
-                        <p className="text-xs text-gray-400 truncate">{product.name}</p>
-                        <p className="text-[10px] text-gray-500 truncate">{product.store.name}</p>
-                        {/* Rating */}
-                        {product.avgRating && (
-                          <div className="flex items-center gap-1 mt-1">
-                            <StarRating rating={product.avgRating} size="xs" />
-                            <span className="text-[10px] text-gray-500">({product.reviewCount})</span>
-                          </div>
-                        )}
+                        <p className="text-sm text-white font-medium truncate">{product.name}</p>
+                        <p className="text-xs text-gray-500 truncate">{product.store.name}</p>
                         <div className="flex items-center justify-between mt-2">
-                          <span className="text-sm font-bold text-blue-400">
-                            ${(product.priceUsdc || product.priceSol * 100).toFixed(2)} USDC
+                          <span className="text-sm font-bold text-white">
+                            {(product.priceUsdc || product.priceSol * 100).toFixed(2)} USDC
                           </span>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={(e) => toggleWishlist(product.id, e)}
-                              className={`text-xl hover:scale-125 transition-transform ${wishlistIds.has(product.id) ? 'text-red-500' : 'text-pink-400 hover:text-pink-300'}`}
-                              title={wishlistIds.has(product.id) ? 'Remove from favorites' : 'Add to favorites'}
-                            >
-                              {wishlistIds.has(product.id) ? '♥' : '♡'}
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (!publicKey) {
-                                  handleConnect();
-                                } else {
-                                  setSelectedProduct(product);
-                                }
-                              }}
-                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
-                            >
-                              {publicKey ? 'Buy' : 'Connect'}
-                            </button>
-                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedProduct(product);
+                            }}
+                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-full transition-colors"
+                          >
+                            {publicKey ? 'Buy' : 'Connect'}
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -1008,9 +924,9 @@ export default function HomePage() {
         </section>
 
         {/* New Products - Horizontal Scroll Row */}
-        <section className="max-w-7xl mx-auto px-4 py-8">
+        <section className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold">New Products</h2>
+            <h2 className="text-xl font-bold text-white">New Products</h2>
             <a href="/products?sort=newest" className="text-gray-400 hover:text-white text-sm">
               See All
             </a>
@@ -1019,7 +935,7 @@ export default function HomePage() {
           {loading ? (
             <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
               {[...Array(8)].map((_, i) => (
-                <div key={i} className="flex-shrink-0 w-52 rounded-xl h-72 bg-[#1a1f2e] animate-pulse" />
+                <div key={i} className="flex-shrink-0 w-40 rounded-xl h-56 bg-[#1a1f2e] animate-pulse" />
               ))}
             </div>
           ) : products.length > 0 ? (
@@ -1028,7 +944,7 @@ export default function HomePage() {
                 <div
                   key={product.id}
                   onClick={() => setSelectedProduct(product)}
-                  className="flex-shrink-0 w-52 bg-[#1a1f2e] rounded-xl overflow-hidden cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all group"
+                  className="flex-shrink-0 w-40 bg-[#1a1f2e] rounded-xl overflow-hidden cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all group"
                 >
                   {/* Image */}
                   <div className="aspect-square bg-[#252a3a] relative overflow-hidden">
@@ -1037,30 +953,24 @@ export default function HomePage() {
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-2xl">🛍️</div>
                     )}
+                    {/* Favorite Heart */}
+                    <button
+                      onClick={(e) => toggleWishlist(product.id, e)}
+                      className={`absolute top-2 right-2 p-1.5 rounded-full transition-all ${
+                        wishlistIds.has(product.id)
+                          ? 'bg-pink-500 text-white'
+                          : 'bg-black/50 text-white hover:bg-black/70'
+                      }`}
+                    >
+                      <svg className="w-3 h-3" fill={wishlistIds.has(product.id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                    </button>
                   </div>
                   {/* Info */}
                   <div className="p-2">
                     <p className="text-xs text-white font-medium truncate">{product.name}</p>
                     <p className="text-[10px] text-gray-500 truncate">{product.store.name}</p>
-                    {/* Rating */}
-                    {product.avgRating && (
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <StarRating rating={product.avgRating} size="xs" />
-                        <span className="text-[10px] text-gray-500">({product.reviewCount})</span>
-                      </div>
-                    )}
-                    <div className="flex items-center justify-between mt-1">
-                      <p className="text-sm font-bold text-blue-400">
-                        ${(product.priceUsdc || product.priceSol * 100).toFixed(2)}
-                      </p>
-                      <button
-                        onClick={(e) => toggleWishlist(product.id, e)}
-                        className={`text-xl hover:scale-125 transition-transform px-1 ${wishlistIds.has(product.id) ? 'text-red-500' : 'text-pink-400 hover:text-pink-300'}`}
-                        title={wishlistIds.has(product.id) ? 'Remove from favorites' : 'Add to favorites'}
-                      >
-                        {wishlistIds.has(product.id) ? '♥' : '♡'}
-                      </button>
-                    </div>
                   </div>
                 </div>
               ))}
@@ -1243,6 +1153,14 @@ function ProductCard({
 
         {/* Name */}
         <h3 className="font-medium text-sm mb-2 line-clamp-2">{product.name}</h3>
+
+        {/* Rating */}
+        {product.avgRating && (
+          <div className="flex items-center gap-1 mb-2">
+            <StarRating rating={product.avgRating} size="xs" />
+            <span className="text-[10px] text-gray-500">({product.reviewCount})</span>
+          </div>
+        )}
 
         {/* Bonding Progress */}
         {bondingPercent !== null && (
@@ -1585,59 +1503,6 @@ function ProductModal({
   const [addingToCart, setAddingToCart] = useState(false);
   const [cartMessage, setCartMessage] = useState<string | null>(null);
   const [showTradeModal, setShowTradeModal] = useState(false);
-  const [kawaiiMessage] = useState(() =>
-    kawaiiTradeMessages[Math.floor(Math.random() * kawaiiTradeMessages.length)]
-  );
-  const kawaiiButtonRef = useRef<HTMLButtonElement>(null);
-
-  // Sparkle effect on click
-  const triggerSparkle = (element: HTMLElement) => {
-    const rect = element.getBoundingClientRect();
-    const originX = rect.left + rect.width / 2;
-    const originY = rect.top + rect.height / 2;
-
-    const sparkles = ['✧', '✦', '★', '☆', '✿', '♡'];
-    const colors = ['#ff69b4', '#ff1493', '#ffb6c1', '#da70d6', '#ffc0cb'];
-
-    const container = document.createElement('div');
-    container.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:99999;';
-    document.body.appendChild(container);
-
-    // Create 12 sparkles
-    for (let i = 0; i < 12; i++) {
-      const sparkle = document.createElement('div');
-      const emoji = sparkles[Math.floor(Math.random() * sparkles.length)];
-      const angle = (i / 12) * Math.PI * 2;
-      const distance = 40 + Math.random() * 30;
-      const endX = Math.cos(angle) * distance;
-      const endY = Math.sin(angle) * distance;
-
-      sparkle.textContent = emoji;
-      sparkle.style.cssText = `
-        position: absolute;
-        font-size: ${12 + Math.random() * 8}px;
-        left: ${originX}px;
-        top: ${originY}px;
-        pointer-events: none;
-        transform: translate(-50%, -50%) scale(0);
-        opacity: 1;
-        color: ${colors[Math.floor(Math.random() * colors.length)]};
-        text-shadow: 0 0 5px currentColor;
-        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-      `;
-      container.appendChild(sparkle);
-
-      requestAnimationFrame(() => {
-        sparkle.style.transform = `translate(calc(-50% + ${endX}px), calc(-50% + ${endY}px)) scale(1)`;
-        setTimeout(() => {
-          sparkle.style.opacity = '0';
-          sparkle.style.transform = `translate(calc(-50% + ${endX * 1.5}px), calc(-50% + ${endY * 1.5}px)) scale(0.5)`;
-        }, 250);
-      });
-    }
-
-    setTimeout(() => container.remove(), 600);
-  };
 
   // Poll for updates every 10 seconds
   useEffect(() => {
@@ -1854,7 +1719,7 @@ function ProductModal({
             <h2 className="text-2xl font-bold mb-2">{product.name}</h2>
 
             {/* Price */}
-            <p className="text-3xl font-bold text-blue-400 mb-4">{price}</p>
+            <p className="text-3xl font-bold text-green-400 mb-2">{price}</p>
 
             {/* Description */}
             {product.description && (
@@ -1904,24 +1769,9 @@ function ProductModal({
               </div>
             )}
 
-            {/* Trade Offer Link - Positioned on far right above actions */}
-            <div className="flex justify-end mb-4">
-              <button
-                ref={kawaiiButtonRef}
-                onClick={(e) => {
-                  if (kawaiiButtonRef.current) {
-                    triggerSparkle(kawaiiButtonRef.current);
-                  }
-                  setTimeout(() => setShowTradeModal(true), 300);
-                }}
-                className="text-pink-400 hover:text-pink-300 text-xs cursor-pointer whitespace-nowrap hover:scale-110 transition-transform"
-              >
-                {kawaiiMessage}
-              </button>
-            </div>
-
             {/* Actions */}
             <div className="space-y-3">
+              {/* Buy Now */}
               {authenticated ? (
                 <button
                   onClick={handleBuyNow}
@@ -1946,13 +1796,50 @@ function ProductModal({
                   Connect Wallet to Buy
                 </button>
               )}
+
+              {/* Add to Cart */}
               <button
                 onClick={handleAddToCart}
                 disabled={liveProduct.quantity === 0 || addingToCart}
-                className="w-full py-3 bg-[#1a1f2e] hover:bg-[#252a3a] disabled:bg-gray-800 disabled:cursor-not-allowed rounded-lg font-semibold transition-colors"
+                className="w-full py-3 bg-[#1a1f2e] hover:bg-[#252a3a] border border-gray-700 disabled:bg-gray-800 disabled:cursor-not-allowed rounded-lg font-semibold transition-colors"
               >
                 {addingToCart ? 'Adding...' : 'Add to Cart'}
               </button>
+
+              {/* Make an Offer (NFT/Tokens) */}
+              <button
+                onClick={() => setShowTradeModal(true)}
+                className="w-full py-3 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                </svg>
+                Make an Offer (NFT/Tokens)
+              </button>
+            </div>
+
+            {/* Reviews Section */}
+            <div className="mt-6 pt-6 border-t border-gray-700">
+              <h3 className="text-lg font-semibold mb-3">Reviews</h3>
+              {product.reviews && product.reviews.length > 0 ? (
+                <div className="space-y-3">
+                  {product.reviews.map((review) => (
+                    <div key={review.id} className="bg-[#1a1f2e] rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="flex">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <span key={star} className={`text-sm ${star <= review.rating ? 'text-yellow-400' : 'text-gray-600'}`}>★</span>
+                          ))}
+                        </div>
+                        <span className="text-xs text-gray-500">{review.userName}</span>
+                      </div>
+                      {review.content && <p className="text-sm text-gray-400">{review.content}</p>}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-4">No reviews yet</p>
+              )}
             </div>
           </div>
         </div>

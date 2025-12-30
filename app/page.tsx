@@ -65,7 +65,53 @@ const triggerConfetti = (e: React.MouseEvent<HTMLAnchorElement>) => {
   }, 1950);
 };
 
+// Kawaii trade messages with Japanese emoticons
+const kawaiiTradeMessages = [
+  "wanna trade? ୧( ˵ ° ~ ° ˵ )୨",
+  "let's swap! (ﾉ◕ヮ◕)ﾉ*:・゚✧",
+  "trade with me~ (◕‿◕✿)",
+  "swap time! ٩(◕‿◕｡)۶",
+  "got something cool? (づ｡◕‿‿◕｡)づ",
+  "trade offer? ♡(˃͈ દ ˂͈ ༶ )",
+  "wanna exchange? (≧◡≦) ♡",
+  "let's barter! ヽ(>∀<☆)☆",
+  "trade pls~ (っ˘ω˘ς )",
+  "swap swap! ✧･ﾟ: *✧･ﾟ:*",
+  "ur item 4 mine? (◠‿◠)♡",
+  "trade time~! ₍ᐢ•ﻌ•ᐢ₎*ﾟ",
+  "let's make a deal! ♪(´ε` )",
+  "wanna swap? (✿◠‿◠)",
+  "trade offer incoming~ ٩(♡ε♡ )۶",
+  "your stuff looks cool! ( ˘▽˘)っ♨",
+  "gimme gimme~ (っ´▽`)っ",
+  "trade? trade! ⊂(◉‿◉)つ",
+  "swap with me pls (｡♥‿♥｡)",
+  "i want it! ☆*:.｡.o(≧▽≦)o.｡.:*☆",
+  "trade buddies? ヾ(＾∇＾)",
+  "let's exchange! (ノ´ヮ`)ノ*: ・゚✧",
+  "swapsies? ♡＾▽＾♡",
+  "wanna trade stuff? (◕ᴗ◕✿)",
+  "deal? deal! ٩(｡•́‿•̀｡)۶",
+  "trading hours~ ☆ﾐ(o*･ω･)ﾉ",
+  "swap offer! (ﾉ´ з `)ノ♡",
+  "trade vibes~ ✿◕ ‿ ◕✿",
+];
+
+// Kawaii floating emojis for decoration
+const kawaiiFloatingEmojis = [
+  "✧", "♡", "☆", "✿", "♪", "✦", "❀", "◕‿◕", "★", "♥",
+  "✧･ﾟ", "｡ﾟ☆", "･ﾟ✧", "♡゜", "☆゜", "✿゜",
+];
+
 // Types
+interface ProductReview {
+  id: string;
+  rating: number;
+  content: string | null;
+  userName: string;
+  createdAt: string;
+}
+
 interface Product {
   id: string;
   name: string;
@@ -80,12 +126,17 @@ interface Product {
   bondingGoal: number;
   bondingCurrent: number;
   category: string;
+  avgRating: number | null;
+  reviewCount: number;
+  reviews: ProductReview[];
   store: {
     id: string;
     name: string;
     slug: string;
     logoUrl: string | null;
     isVerified: boolean;
+    tradesEnabled?: boolean;
+    ownerId?: string;
   };
 }
 
@@ -97,6 +148,30 @@ interface FeaturedStore {
   logoUrl: string | null;
   isNew: boolean;
   createdAt: string;
+}
+
+// Star rating component
+function StarRating({ rating, size = 'sm' }: { rating: number; size?: 'xs' | 'sm' | 'md' }) {
+  const sizeClasses = {
+    xs: 'text-[10px]',
+    sm: 'text-xs',
+    md: 'text-sm',
+  };
+  const stars = [];
+  const fullStars = Math.floor(rating);
+  const hasHalfStar = rating % 1 >= 0.5;
+
+  for (let i = 0; i < 5; i++) {
+    if (i < fullStars) {
+      stars.push(<span key={i} className="text-yellow-400">★</span>);
+    } else if (i === fullStars && hasHalfStar) {
+      stars.push(<span key={i} className="text-yellow-400">★</span>);
+    } else {
+      stars.push(<span key={i} className="text-gray-600">★</span>);
+    }
+  }
+
+  return <span className={sizeClasses[size]}>{stars}</span>;
 }
 
 // Fallback gradient colors for stores without banners
@@ -749,168 +824,245 @@ export default function HomePage() {
 
       {/* Main Content */}
       <main className="pt-16">
-        {/* Hero Carousel - Shows Approved Stores */}
-        {featuredStores.length > 0 && (
-        <section className="relative h-[400px] overflow-hidden">
-          {/* Background - Store banner or gradient */}
-          {featuredStores[currentSlide]?.bannerUrl ? (
-            <div
-              className="absolute inset-0 transition-all duration-700 bg-cover bg-center"
-              style={{ backgroundImage: `url(${featuredStores[currentSlide].bannerUrl})` }}
-            >
-              <div className="absolute inset-0 bg-black/50" />
-            </div>
-          ) : (
-            <div
-              className="absolute inset-0 transition-all duration-700"
-              style={{ background: gradientColors[currentSlide % gradientColors.length] }}
-            />
-          )}
-
-          <div className="relative max-w-7xl mx-auto px-4 h-full flex items-center">
-            <div className="max-w-lg">
-              {featuredStores[currentSlide]?.isNew && (
-                <span className="inline-block px-3 py-1 bg-green-500 text-black text-xs font-bold rounded-full mb-4">
-                  NEW STORE
-                </span>
-              )}
-              <div className="flex items-center gap-4 mb-4">
-                {featuredStores[currentSlide]?.logoUrl && (
-                  <img
-                    src={featuredStores[currentSlide].logoUrl!}
-                    alt=""
-                    className="w-16 h-16 rounded-xl object-cover border-2 border-white/20"
-                  />
+        {/* Featured + Best Sellers - Two Column Layout */}
+        <section className="max-w-7xl mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            {/* Featured - Store Carousel (Left ~60%) */}
+            <div className="lg:col-span-3">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">Featured</h2>
+                {featuredStores.length > 1 && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentSlide((prev) => (prev - 1 + featuredStores.length) % featuredStores.length)}
+                      className="p-1.5 bg-[#1a1f2e] hover:bg-[#252a3a] rounded-full transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => setCurrentSlide((prev) => (prev + 1) % featuredStores.length)}
+                      className="p-1.5 bg-[#1a1f2e] hover:bg-[#252a3a] rounded-full transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
                 )}
-                <h1 className="text-5xl font-bold">{featuredStores[currentSlide]?.name}</h1>
               </div>
-              <p className="text-gray-300 mb-6">Exclusive merchandise from this verified store</p>
-              <a
-                href={`/store/${featuredStores[currentSlide]?.slug}`}
-                className="inline-block px-6 py-3 bg-white text-black font-semibold rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Visit Store
-              </a>
+              {loading ? (
+                <div className="rounded-2xl h-[420px] bg-[#1a1f2e] animate-pulse" />
+              ) : featuredStores.length > 0 ? (
+                <a
+                  href={`/store/${featuredStores[currentSlide]?.slug}`}
+                  className="relative rounded-2xl overflow-hidden block hover:ring-2 hover:ring-blue-500 transition-all group h-[420px]"
+                  style={{
+                    background: featuredStores[currentSlide]?.bannerUrl
+                      ? `url(${featuredStores[currentSlide].bannerUrl}) center/cover`
+                      : gradientColors[currentSlide % gradientColors.length]
+                  }}
+                >
+                  {/* Badge */}
+                  <div className="absolute top-4 left-4">
+                    <span className={`px-3 py-1.5 text-xs font-semibold rounded-full ${
+                      featuredStores[currentSlide]?.isNew
+                        ? 'bg-green-500 text-black'
+                        : 'bg-blue-600 text-white'
+                    }`}>
+                      {featuredStores[currentSlide]?.isNew ? 'NEW STORE' : 'Featured Store'}
+                    </span>
+                  </div>
+
+                  {/* Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+
+                  {/* Content */}
+                  <div className="absolute bottom-0 left-0 right-0 p-6">
+                    <div className="flex items-center gap-3 mb-3">
+                      {featuredStores[currentSlide]?.logoUrl && (
+                        <img
+                          src={featuredStores[currentSlide].logoUrl!}
+                          alt=""
+                          className="w-14 h-14 rounded-xl object-cover border-2 border-white/20"
+                        />
+                      )}
+                      <div>
+                        <h3 className="text-3xl font-bold text-white">{featuredStores[currentSlide]?.name}</h3>
+                        <p className="text-gray-300 text-sm">Exclusive merchandise</p>
+                      </div>
+                    </div>
+                    <span className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1">
+                      Visit Store
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </span>
+                  </div>
+
+                  {/* Carousel Dots */}
+                  {featuredStores.length > 1 && (
+                    <div className="absolute bottom-4 right-4 flex gap-1.5">
+                      {featuredStores.map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setCurrentSlide(i);
+                          }}
+                          className={`w-2 h-2 rounded-full transition-colors ${
+                            i === currentSlide ? 'bg-white' : 'bg-white/30'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </a>
+              ) : (
+                <div className="rounded-2xl h-[420px] bg-[#1a1f2e] flex items-center justify-center text-gray-500">
+                  <p>No featured stores yet</p>
+                </div>
+              )}
+            </div>
+
+            {/* Best Sellers - 2x2 Grid (Right ~40%) */}
+            <div className="lg:col-span-2">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">Best Sellers</h2>
+                <a href="/products?sort=popular" className="text-gray-400 hover:text-white text-sm">
+                  See All
+                </a>
+              </div>
+              {loading ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="rounded-xl h-[200px] bg-[#1a1f2e] animate-pulse" />
+                  ))}
+                </div>
+              ) : (bestSellers.filter(p => p.totalSold > 0).length > 0 ? bestSellers.filter(p => p.totalSold > 0) : bestSellers).slice(0, 4).length > 0 ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {(bestSellers.filter(p => p.totalSold > 0).length > 0 ? bestSellers.filter(p => p.totalSold > 0) : bestSellers).slice(0, 4).map((product) => (
+                    <div
+                      key={product.id}
+                      onClick={() => setSelectedProduct(product)}
+                      className="bg-[#1a1f2e] rounded-xl overflow-hidden cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all group"
+                    >
+                      {/* Image */}
+                      <div className="aspect-square bg-[#252a3a] relative overflow-hidden">
+                        {product.images?.[0] ? (
+                          <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-3xl">🛍️</div>
+                        )}
+                      </div>
+                      {/* Info */}
+                      <div className="p-3">
+                        <p className="text-xs text-gray-400 truncate">{product.name}</p>
+                        <p className="text-[10px] text-gray-500 truncate">{product.store.name}</p>
+                        {/* Rating */}
+                        {product.avgRating && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <StarRating rating={product.avgRating} size="xs" />
+                            <span className="text-[10px] text-gray-500">({product.reviewCount})</span>
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between mt-2">
+                          <span className="text-sm font-bold text-blue-400">
+                            ${(product.priceUsdc || product.priceSol * 100).toFixed(2)} USDC
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => toggleWishlist(product.id, e)}
+                              className={`text-xl hover:scale-125 transition-transform ${wishlistIds.has(product.id) ? 'text-red-500' : 'text-pink-400 hover:text-pink-300'}`}
+                              title={wishlistIds.has(product.id) ? 'Remove from favorites' : 'Add to favorites'}
+                            >
+                              {wishlistIds.has(product.id) ? '♥' : '♡'}
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!publicKey) {
+                                  handleConnect();
+                                } else {
+                                  setSelectedProduct(product);
+                                }
+                              }}
+                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
+                            >
+                              {publicKey ? 'Buy' : 'Connect'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl h-[420px] bg-[#1a1f2e] flex items-center justify-center text-gray-500">
+                  <p>No best sellers yet</p>
+                </div>
+              )}
             </div>
           </div>
-
-          {/* Carousel Dots */}
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
-            {featuredStores.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentSlide(i)}
-                className={`w-2 h-2 rounded-full transition-colors ${
-                  i === currentSlide ? 'bg-white' : 'bg-white/30'
-                }`}
-              />
-            ))}
-          </div>
-
-          {/* Arrows */}
-          <button
-            onClick={() => setCurrentSlide((prev) => (prev - 1 + featuredStores.length) % featuredStores.length)}
-            className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-black/30 hover:bg-black/50 rounded-full"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <button
-            onClick={() => setCurrentSlide((prev) => (prev + 1) % featuredStores.length)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-black/30 hover:bg-black/50 rounded-full"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
         </section>
-        )}
 
-        {/* New Products - Now first! */}
-        <section className="max-w-7xl mx-auto px-4 py-12">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <span className="text-green-500">✨</span> New Products
-            </h2>
-            <a href="/products?sort=newest" className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1">
-              View all
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+        {/* New Products - Horizontal Scroll Row */}
+        <section className="max-w-7xl mx-auto px-4 py-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold">New Products</h2>
+            <a href="/products?sort=newest" className="text-gray-400 hover:text-white text-sm">
+              See All
             </a>
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="rounded-xl h-72 bg-[#1a1f2e] animate-pulse" />
+            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="flex-shrink-0 w-52 rounded-xl h-72 bg-[#1a1f2e] animate-pulse" />
               ))}
             </div>
           ) : products.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
               {products.slice(0, 12).map((product) => (
-                <ProductCard
+                <div
                   key={product.id}
-                  product={product}
-                  currency={currency}
                   onClick={() => setSelectedProduct(product)}
-                  isWishlisted={wishlistIds.has(product.id)}
-                  onToggleWishlist={toggleWishlist}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 text-gray-500">
-              <p>No products available yet. Check back soon!</p>
-            </div>
-          )}
-        </section>
-
-        {/* Best Sellers - Shows products with actual sales, or top products if no sales yet */}
-        <section className="max-w-7xl mx-auto px-4 py-12">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <span className="text-yellow-500">🔥</span> Best Sellers
-            </h2>
-            <a href="/products?sort=popular" className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1">
-              View all
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </a>
-          </div>
-
-          {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="rounded-xl h-72 bg-[#1a1f2e] animate-pulse" />
-              ))}
-            </div>
-          ) : bestSellers.filter(p => p.totalSold > 0).length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {bestSellers.filter(p => p.totalSold > 0).slice(0, 4).map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  currency={currency}
-                  onClick={() => setSelectedProduct(product)}
-                  isWishlisted={wishlistIds.has(product.id)}
-                  onToggleWishlist={toggleWishlist}
-                />
-              ))}
-            </div>
-          ) : bestSellers.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {bestSellers.slice(0, 4).map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  currency={currency}
-                  onClick={() => setSelectedProduct(product)}
-                  isWishlisted={wishlistIds.has(product.id)}
-                  onToggleWishlist={toggleWishlist}
-                />
+                  className="flex-shrink-0 w-52 bg-[#1a1f2e] rounded-xl overflow-hidden cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all group"
+                >
+                  {/* Image */}
+                  <div className="aspect-square bg-[#252a3a] relative overflow-hidden">
+                    {product.images?.[0] ? (
+                      <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-2xl">🛍️</div>
+                    )}
+                  </div>
+                  {/* Info */}
+                  <div className="p-2">
+                    <p className="text-xs text-white font-medium truncate">{product.name}</p>
+                    <p className="text-[10px] text-gray-500 truncate">{product.store.name}</p>
+                    {/* Rating */}
+                    {product.avgRating && (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <StarRating rating={product.avgRating} size="xs" />
+                        <span className="text-[10px] text-gray-500">({product.reviewCount})</span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-sm font-bold text-blue-400">
+                        ${(product.priceUsdc || product.priceSol * 100).toFixed(2)}
+                      </p>
+                      <button
+                        onClick={(e) => toggleWishlist(product.id, e)}
+                        className={`text-xl hover:scale-125 transition-transform px-1 ${wishlistIds.has(product.id) ? 'text-red-500' : 'text-pink-400 hover:text-pink-300'}`}
+                        title={wishlistIds.has(product.id) ? 'Remove from favorites' : 'Add to favorites'}
+                      >
+                        {wishlistIds.has(product.id) ? '♥' : '♡'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
           ) : (
@@ -1112,6 +1264,304 @@ function ProductCard({
   );
 }
 
+// Trade Offer Modal Component
+function TradeOfferModal({
+  product,
+  walletAddress,
+  onClose,
+  onConnect,
+  authenticated,
+}: {
+  product: Product;
+  walletAddress: string | null;
+  onClose: () => void;
+  onConnect: () => void;
+  authenticated: boolean;
+}) {
+  const [description, setDescription] = useState('');
+  const [cashAmount, setCashAmount] = useState('');
+  const [images, setImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Downscale image using canvas
+  const downscaleImage = (file: File, maxWidth: number = 800, maxHeight: number = 800, quality: number = 0.8): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      img.onload = () => {
+        let { width, height } = img;
+
+        // Calculate new dimensions
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve(dataUrl);
+        } else {
+          reject(new Error('Could not get canvas context'));
+        }
+      };
+
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    const newImages: string[] = [];
+
+    try {
+      for (let i = 0; i < Math.min(files.length, 4 - images.length); i++) {
+        const file = files[i];
+        if (file.type.startsWith('image/')) {
+          const downscaled = await downscaleImage(file);
+          newImages.push(downscaled);
+        }
+      }
+      setImages([...images, ...newImages]);
+    } catch (error) {
+      console.error('Error processing images:', error);
+      setMessage({ type: 'error', text: 'Failed to process images' });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages(images.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async () => {
+    if (!authenticated || !walletAddress) {
+      onConnect();
+      return;
+    }
+
+    if (!description.trim()) {
+      setMessage({ type: 'error', text: 'Please describe what you want to trade' });
+      return;
+    }
+
+    setSubmitting(true);
+    setMessage(null);
+
+    try {
+      const res = await fetch('/api/trades', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': walletAddress,
+        },
+        body: JSON.stringify({
+          productId: product.id,
+          offerDescription: description,
+          offerAmount: cashAmount ? parseFloat(cashAmount) : null,
+          offerImages: images,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setMessage({ type: 'success', text: 'Trade offer submitted! The seller will review it.' });
+        setTimeout(() => {
+          onClose();
+        }, 2000);
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to submit trade offer' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to submit trade offer' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/80" onClick={onClose} />
+      <div className="relative bg-[#111827] rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <h3 className="text-lg font-bold text-white">Submit Trade Offer</h3>
+          <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-lg">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-4 space-y-4">
+          {/* Product info */}
+          <div className="flex items-center gap-3 p-3 bg-[#1a1f2e] rounded-lg">
+            <div className="w-16 h-16 rounded-lg overflow-hidden bg-[#252a3a]">
+              {product.images?.[0] ? (
+                <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-2xl">🛍️</div>
+              )}
+            </div>
+            <div>
+              <p className="text-white font-medium">{product.name}</p>
+              <p className="text-gray-400 text-sm">{product.store.name}</p>
+              <p className="text-blue-400 text-sm font-medium">
+                ${(product.priceUsdc || product.priceSol * 100).toFixed(2)} USDC
+              </p>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              What do you want to trade? *
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe the item(s) you want to trade..."
+              className="w-full p-3 bg-[#1a1f2e] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-pink-500 resize-none"
+              rows={3}
+            />
+          </div>
+
+          {/* Image Upload */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Add photos of your item (optional)
+            </label>
+            <div className="grid grid-cols-4 gap-2">
+              {images.map((img, i) => (
+                <div key={i} className="relative aspect-square rounded-lg overflow-hidden">
+                  <img src={img} alt={`Trade item ${i + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => removeImage(i)}
+                    className="absolute top-1 right-1 p-1 bg-red-500 rounded-full hover:bg-red-600"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+              {images.length < 4 && (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="aspect-square border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-pink-500 hover:text-pink-400 transition-colors"
+                >
+                  {uploading ? (
+                    <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : (
+                    <>
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      <span className="text-xs mt-1">Add</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+            <p className="text-xs text-gray-500 mt-2">Images auto-resize to save space (max 4)</p>
+          </div>
+
+          {/* Cash Amount (optional) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Add cash to sweeten the deal? (optional)
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+              <input
+                type="number"
+                value={cashAmount}
+                onChange={(e) => setCashAmount(e.target.value)}
+                onWheel={(e) => e.currentTarget.blur()}
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+                className="w-full p-3 pl-8 bg-[#1a1f2e] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-pink-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">USDC</span>
+            </div>
+          </div>
+
+          {/* Message */}
+          {message && (
+            <div className={`p-3 rounded-lg text-sm ${
+              message.type === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+            }`}>
+              {message.text}
+            </div>
+          )}
+
+          {/* Submit */}
+          <button
+            onClick={handleSubmit}
+            disabled={submitting || !description.trim()}
+            className="w-full py-3 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
+          >
+            {submitting ? (
+              <>
+                <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Submitting...
+              </>
+            ) : (
+              'Submit Trade Offer'
+            )}
+          </button>
+
+          {/* Beg button - DM the seller */}
+          <div className="text-center pt-2">
+            <span className="text-gray-500 text-sm">or try to </span>
+            <a
+              href={`/account/messages?merchant=${product.store.ownerId || product.store.id}`}
+              className="text-orange-400 hover:text-orange-300 text-sm font-medium transition-colors"
+            >
+              [beg]
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Product Modal Component
 function ProductModal({
   product,
@@ -1134,6 +1584,60 @@ function ProductModal({
   const [liveProduct, setLiveProduct] = useState(product);
   const [addingToCart, setAddingToCart] = useState(false);
   const [cartMessage, setCartMessage] = useState<string | null>(null);
+  const [showTradeModal, setShowTradeModal] = useState(false);
+  const [kawaiiMessage] = useState(() =>
+    kawaiiTradeMessages[Math.floor(Math.random() * kawaiiTradeMessages.length)]
+  );
+  const kawaiiButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Sparkle effect on click
+  const triggerSparkle = (element: HTMLElement) => {
+    const rect = element.getBoundingClientRect();
+    const originX = rect.left + rect.width / 2;
+    const originY = rect.top + rect.height / 2;
+
+    const sparkles = ['✧', '✦', '★', '☆', '✿', '♡'];
+    const colors = ['#ff69b4', '#ff1493', '#ffb6c1', '#da70d6', '#ffc0cb'];
+
+    const container = document.createElement('div');
+    container.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:99999;';
+    document.body.appendChild(container);
+
+    // Create 12 sparkles
+    for (let i = 0; i < 12; i++) {
+      const sparkle = document.createElement('div');
+      const emoji = sparkles[Math.floor(Math.random() * sparkles.length)];
+      const angle = (i / 12) * Math.PI * 2;
+      const distance = 40 + Math.random() * 30;
+      const endX = Math.cos(angle) * distance;
+      const endY = Math.sin(angle) * distance;
+
+      sparkle.textContent = emoji;
+      sparkle.style.cssText = `
+        position: absolute;
+        font-size: ${12 + Math.random() * 8}px;
+        left: ${originX}px;
+        top: ${originY}px;
+        pointer-events: none;
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 1;
+        color: ${colors[Math.floor(Math.random() * colors.length)]};
+        text-shadow: 0 0 5px currentColor;
+        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      `;
+      container.appendChild(sparkle);
+
+      requestAnimationFrame(() => {
+        sparkle.style.transform = `translate(calc(-50% + ${endX}px), calc(-50% + ${endY}px)) scale(1)`;
+        setTimeout(() => {
+          sparkle.style.opacity = '0';
+          sparkle.style.transform = `translate(calc(-50% + ${endX * 1.5}px), calc(-50% + ${endY * 1.5}px)) scale(0.5)`;
+        }, 250);
+      });
+    }
+
+    setTimeout(() => container.remove(), 600);
+  };
 
   // Poll for updates every 10 seconds
   useEffect(() => {
@@ -1393,12 +1897,28 @@ function ProductModal({
 
             {/* Cart Message */}
             {cartMessage && (
-              <div className={`p-3 rounded-lg text-sm font-medium ${
+              <div className={`p-3 rounded-lg text-sm font-medium mb-3 ${
                 cartMessage.includes('Added') ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
               }`}>
                 {cartMessage}
               </div>
             )}
+
+            {/* Trade Offer Link - Positioned on far right above actions */}
+            <div className="flex justify-end mb-4">
+              <button
+                ref={kawaiiButtonRef}
+                onClick={(e) => {
+                  if (kawaiiButtonRef.current) {
+                    triggerSparkle(kawaiiButtonRef.current);
+                  }
+                  setTimeout(() => setShowTradeModal(true), 300);
+                }}
+                className="text-pink-400 hover:text-pink-300 text-xs cursor-pointer whitespace-nowrap hover:scale-110 transition-transform"
+              >
+                {kawaiiMessage}
+              </button>
+            </div>
 
             {/* Actions */}
             <div className="space-y-3">
@@ -1437,6 +1957,17 @@ function ProductModal({
           </div>
         </div>
       </div>
+
+      {/* Trade Offer Modal */}
+      {showTradeModal && (
+        <TradeOfferModal
+          product={product}
+          walletAddress={walletAddress}
+          onClose={() => setShowTradeModal(false)}
+          onConnect={onConnect}
+          authenticated={authenticated}
+        />
+      )}
     </div>
   );
 }

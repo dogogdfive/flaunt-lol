@@ -58,7 +58,7 @@ export default async function ProductPage({
       : { slug: params.slug, status: 'APPROVED' },
     include: {
       store: {
-        select: { id: true, name: true, slug: true, logoUrl: true, isVerified: true },
+        select: { id: true, name: true, slug: true, logoUrl: true, isVerified: true, tradesEnabled: true, ownerId: true },
       },
       variants: {
         orderBy: { name: 'asc' },

@@ -60,6 +60,24 @@ export default async function StorePublicPage({ params }: { params: { slug: stri
       products: {
         where: { status: 'APPROVED' },
         orderBy: { createdAt: 'desc' },
+        include: {
+          reviews: {
+            select: {
+              id: true,
+              rating: true,
+              content: true,
+              createdAt: true,
+              user: {
+                select: {
+                  name: true,
+                  username: true,
+                },
+              },
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 3,
+          },
+        },
       },
       _count: {
         select: { products: { where: { status: 'APPROVED' } } },
@@ -166,19 +184,27 @@ export default async function StorePublicPage({ params }: { params: { slug: stri
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {store.products.map((product) => (
-              <StoreProductCard
-                key={product.id}
-                product={{
-                  id: product.id,
-                  name: product.name,
-                  slug: product.slug,
-                  priceSol: Number(product.priceSol),
-                  images: product.images,
-                  quantity: product.quantity,
-                }}
-              />
-            ))}
+            {store.products.map((product) => {
+              const reviewCount = product.reviews.length;
+              const avgRating = reviewCount > 0
+                ? product.reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount
+                : null;
+              return (
+                <StoreProductCard
+                  key={product.id}
+                  product={{
+                    id: product.id,
+                    name: product.name,
+                    slug: product.slug,
+                    priceSol: Number(product.priceSol),
+                    images: product.images,
+                    quantity: product.quantity,
+                    avgRating: avgRating ? Math.round(avgRating * 10) / 10 : null,
+                    reviewCount,
+                  }}
+                />
+              );
+            })}
           </div>
         )}
 

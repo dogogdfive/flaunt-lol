@@ -15,6 +15,7 @@ import {
   ExternalLink,
   Loader2,
   Plus,
+  ArrowLeftRight,
 } from 'lucide-react';
 
 interface DashboardStats {
@@ -43,6 +44,16 @@ interface TopProduct {
   revenue: string;
 }
 
+interface PendingTrade {
+  id: string;
+  buyerName: string;
+  productName: string;
+  offerDescription: string;
+  offerAmount: number | null;
+  createdAt: string;
+  isNew: boolean;
+}
+
 const statusColors: Record<string, string> = {
   PENDING: 'bg-gray-500/10 text-gray-400',
   PAID: 'bg-blue-500/10 text-blue-400',
@@ -57,15 +68,18 @@ export default function MerchantDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
+  const [pendingTrades, setPendingTrades] = useState<PendingTrade[]>([]);
+  const [pendingTradesCount, setPendingTradesCount] = useState(0);
   const [store, setStore] = useState<{ name: string; slug: string } | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         // Fetch dashboard stats
-        const [dashboardRes, storeRes] = await Promise.all([
+        const [dashboardRes, storeRes, tradesRes] = await Promise.all([
           fetch('/api/merchant/dashboard'),
           fetch('/api/merchant/store'),
+          fetch('/api/merchant/trades?status=PENDING'),
         ]);
 
         if (dashboardRes.ok) {
@@ -79,6 +93,22 @@ export default function MerchantDashboard() {
           const storeData = await storeRes.json();
           if (storeData.store) {
             setStore({ name: storeData.store.name, slug: storeData.store.slug });
+          }
+        }
+
+        if (tradesRes.ok) {
+          const tradesData = await tradesRes.json();
+          if (tradesData.success) {
+            setPendingTrades(tradesData.trades?.slice(0, 3).map((t: any) => ({
+              id: t.id,
+              buyerName: t.buyer?.name || 'Unknown',
+              productName: t.product?.name || 'Unknown Product',
+              offerDescription: t.offerDescription,
+              offerAmount: t.offerAmount,
+              createdAt: t.createdAt,
+              isNew: t.isNew,
+            })) || []);
+            setPendingTradesCount(tradesData.stats?.pending || 0);
           }
         }
       } catch (error) {
@@ -313,6 +343,55 @@ export default function MerchantDashboard() {
         </div>
       </div>
 
+      {/* Pending Trades Alert */}
+      {pendingTradesCount > 0 && (
+        <div className="bg-cyan-900/20 border border-cyan-500/30 rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-cyan-500/20 rounded-lg">
+                <ArrowLeftRight className="w-6 h-6 text-cyan-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">
+                  {pendingTradesCount} Pending Trade Offer{pendingTradesCount > 1 ? 's' : ''}
+                </h3>
+                <p className="text-gray-400 text-sm">
+                  Buyers want to trade with you
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/merchant/trades"
+              className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
+            >
+              View Trades
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+          {pendingTrades.length > 0 && (
+            <div className="mt-4 space-y-2">
+              {pendingTrades.map((trade) => (
+                <div key={trade.id} className="flex items-center justify-between p-3 bg-[#111827]/50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    {trade.isNew && (
+                      <span className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
+                    )}
+                    <div>
+                      <span className="text-white font-medium">{trade.buyerName}</span>
+                      <span className="text-gray-400"> wants to trade for </span>
+                      <span className="text-cyan-400">{trade.productName}</span>
+                    </div>
+                  </div>
+                  <span className="text-gray-500 text-sm">
+                    {new Date(trade.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Quick Actions */}
       <div className="bg-[#111827] border border-gray-800 rounded-xl p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Quick Actions</h2>
@@ -327,15 +406,18 @@ export default function MerchantDashboard() {
             <div className="text-white font-medium">Fulfill Orders</div>
             <div className="text-sm text-gray-400">{stats?.pendingOrdersCount || 0} pending</div>
           </Link>
+          <Link href="/merchant/trades" className="p-4 bg-[#1f2937] rounded-lg hover:bg-[#374151] transition-colors text-left relative">
+            <ArrowLeftRight className="w-6 h-6 text-cyan-400 mb-2" />
+            <div className="text-white font-medium">Trade Offers</div>
+            <div className="text-sm text-gray-400">{pendingTradesCount} pending</div>
+            {pendingTradesCount > 0 && (
+              <span className="absolute top-3 right-3 w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
+            )}
+          </Link>
           <Link href="/merchant/payouts" className="p-4 bg-[#1f2937] rounded-lg hover:bg-[#374151] transition-colors text-left">
             <DollarSign className="w-6 h-6 text-yellow-400 mb-2" />
             <div className="text-white font-medium">View Payouts</div>
             <div className="text-sm text-gray-400">${stats?.pendingPayout?.toFixed(2) || '0'} USDC ready</div>
-          </Link>
-          <Link href="/merchant/settings" className="p-4 bg-[#1f2937] rounded-lg hover:bg-[#374151] transition-colors text-left">
-            <TrendingUp className="w-6 h-6 text-purple-400 mb-2" />
-            <div className="text-white font-medium">Store Settings</div>
-            <div className="text-sm text-gray-400">Customize store</div>
           </Link>
         </div>
       </div>

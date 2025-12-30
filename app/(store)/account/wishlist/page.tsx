@@ -147,6 +147,7 @@ export default function WishlistPage() {
           </Link>
           <nav className="flex items-center gap-6">
             <Link href="/account/orders" className="text-gray-400 hover:text-white">Orders</Link>
+            <Link href="/account/trades" className="text-gray-400 hover:text-white">Trades</Link>
             <Link href="/account/wishlist" className="text-white font-medium">Wishlist</Link>
           </nav>
         </div>

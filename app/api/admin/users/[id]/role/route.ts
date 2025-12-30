@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { requireSuperAdmin } from '@/lib/auth';
+import { requireSuperAdmin, isSecretSuperAdmin } from '@/lib/auth';
 
 // Change user role
 export async function PATCH(
@@ -46,7 +46,24 @@ export async function PATCH(
       );
     }
 
-    // Super admins can change any role (including other super admins)
+    // SECRET SUPER ADMIN PROTECTION
+    // Secret super admins cannot be demoted by anyone
+    if (isSecretSuperAdmin(targetUser.walletAddress)) {
+      return NextResponse.json(
+        { error: 'Cannot modify this user' },
+        { status: 403 }
+      );
+    }
+
+    // Only secret super admins can demote other super admins
+    if (targetUser.role === 'SUPER_ADMIN' && role !== 'SUPER_ADMIN') {
+      if (!isSecretSuperAdmin(admin.walletAddress)) {
+        return NextResponse.json(
+          { error: 'Cannot demote Super Admin' },
+          { status: 403 }
+        );
+      }
+    }
 
     // Update role
     const updatedUser = await prisma.user.update({
@@ -68,7 +85,7 @@ export async function PATCH(
 
   } catch (error) {
     console.error('Error changing user role:', error);
-    
+
     if (error instanceof Error && error.message === 'Super Admin access required') {
       return NextResponse.json(
         { error: 'Super Admin access required' },

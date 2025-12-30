@@ -12,6 +12,27 @@ interface Product {
   priceSol: number;
   images: string[];
   quantity: number;
+  avgRating: number | null;
+  reviewCount: number;
+}
+
+// Star rating component
+function StarRating({ rating }: { rating: number }) {
+  const stars = [];
+  const fullStars = Math.floor(rating);
+  const hasHalfStar = rating % 1 >= 0.5;
+
+  for (let i = 0; i < 5; i++) {
+    if (i < fullStars) {
+      stars.push(<span key={i} className="text-yellow-400">★</span>);
+    } else if (i === fullStars && hasHalfStar) {
+      stars.push(<span key={i} className="text-yellow-400">★</span>);
+    } else {
+      stars.push(<span key={i} className="text-gray-600">★</span>);
+    }
+  }
+
+  return <span className="text-xs">{stars}</span>;
 }
 
 export default function StoreProductCard({ product }: { product: Product }) {
@@ -126,6 +147,13 @@ export default function StoreProductCard({ product }: { product: Product }) {
       </div>
       <div className="p-4">
         <h3 className="text-white font-medium truncate">{product.name}</h3>
+        {/* Rating */}
+        {product.avgRating && (
+          <div className="flex items-center gap-1 mt-1">
+            <StarRating rating={product.avgRating} />
+            <span className="text-xs text-gray-500">({product.reviewCount})</span>
+          </div>
+        )}
         <p className="text-blue-400 font-semibold mt-1">${(Number(product.priceSol) * 200).toFixed(2)}</p>
       </div>
     </Link>

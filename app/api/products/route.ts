@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
         break;
     }
 
-    // Get products
+    // Get products with reviews
     const products = await prisma.product.findMany({
       where,
       orderBy,
@@ -87,6 +87,22 @@ export async function GET(request: NextRequest) {
             slug: true,
           },
         },
+        reviews: {
+          select: {
+            id: true,
+            rating: true,
+            content: true,
+            createdAt: true,
+            user: {
+              select: {
+                name: true,
+                username: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 3, // Get latest 3 reviews per product
+        },
       },
     });
 
@@ -95,23 +111,41 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      products: products.map((p) => ({
-        id: p.id,
-        name: p.name,
-        slug: p.slug,
-        description: p.description,
-        priceSol: Number(p.priceSol),
-        priceUsdc: p.priceUsdc ? Number(p.priceUsdc) : null,
-        images: p.images,
-        category: p.category,
-        quantity: p.quantity,
-        totalSold: 0, // Will show 0 until we have confirmed payouts
-        confirmedSales: 0,
-        bondingEnabled: p.bondingEnabled,
-        bondingGoal: p.bondingGoal,
-        bondingCurrent: p.bondingCurrent,
-        store: p.store,
-      })),
+      products: products.map((p) => {
+        // Calculate average rating
+        const reviewCount = p.reviews.length;
+        const avgRating = reviewCount > 0
+          ? p.reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount
+          : null;
+
+        return {
+          id: p.id,
+          name: p.name,
+          slug: p.slug,
+          description: p.description,
+          priceSol: Number(p.priceSol),
+          priceUsdc: p.priceUsdc ? Number(p.priceUsdc) : null,
+          images: p.images,
+          category: p.category,
+          quantity: p.quantity,
+          totalSold: 0, // Will show 0 until we have confirmed payouts
+          confirmedSales: 0,
+          bondingEnabled: p.bondingEnabled,
+          bondingGoal: p.bondingGoal,
+          bondingCurrent: p.bondingCurrent,
+          store: p.store,
+          // Review data
+          avgRating: avgRating ? Math.round(avgRating * 10) / 10 : null,
+          reviewCount,
+          reviews: p.reviews.map(r => ({
+            id: r.id,
+            rating: r.rating,
+            content: r.content,
+            userName: r.user.username || r.user.name || 'Anonymous',
+            createdAt: r.createdAt.toISOString(),
+          })),
+        };
+      }),
       pagination: {
         page,
         limit,

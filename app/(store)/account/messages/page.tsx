@@ -86,6 +86,7 @@ export default function BuyerMessagesPage() {
   const connected = mounted ? wallet.connected : false;
   const searchParams = useSearchParams();
   const storeIdParam = searchParams.get('storeId');
+  const merchantIdParam = searchParams.get('merchant');
 
   const [loading, setLoading] = useState(true);
   const [conversationsLoaded, setConversationsLoaded] = useState(false);
@@ -125,6 +126,28 @@ export default function BuyerMessagesPage() {
       }
     }
   }, [storeIdParam, orders, autoSelectHandled, loading]);
+
+  // Auto-select conversation based on merchant ID query param (for beg button)
+  useEffect(() => {
+    if (merchantIdParam && !autoSelectHandled && !loading && conversationsLoaded) {
+      // Check if we already have a conversation with this merchant
+      const existingConv = conversations.find(c => c.id === merchantIdParam);
+      if (existingConv) {
+        setSelectedConversation(existingConv);
+        setAutoSelectHandled(true);
+      } else {
+        // Create a new conversation with this merchant
+        const conv: Conversation = {
+          id: merchantIdParam,
+          name: 'Merchant',
+          role: 'MERCHANT',
+          unreadCount: 0,
+        };
+        setSelectedConversation(conv);
+        setAutoSelectHandled(true);
+      }
+    }
+  }, [merchantIdParam, autoSelectHandled, loading, conversationsLoaded, conversations]);
 
   useEffect(() => {
     if (selectedConversation) {

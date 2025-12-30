@@ -38,6 +38,8 @@ model User {
   auctionsMerchant  Auction[]          @relation("AuctionMerchant")
   auctionsWon       Auction[]          @relation("AuctionWinner")
   auctionMessages   AuctionMessage[]
+  tradeOffersSent   TradeOffer[]       @relation("TradeOfferBuyer")
+  tradeOffersReceived TradeOffer[]     @relation("TradeOfferMerchant")
 
   @@index([role])
   @@map("users")
@@ -74,6 +76,7 @@ model Store {
   discordUrl       String?           @map("discord_url")
   telegramUrl      String?           @map("telegram_url")
   isVerified       Boolean           @default(false) @map("is_verified")
+  tradesEnabled    Boolean           @default(true) @map("trades_enabled")
   totalSales       Decimal           @default(0) @map("total_sales") @db.Decimal(20, 9)
   totalOrders      Int               @default(0) @map("total_orders")
   avgRating        Float?            @map("avg_rating")
@@ -100,6 +103,7 @@ model Store {
   approvedBy       User?             @relation("ApprovedBy", fields: [approvedById], references: [id])
   owner            User              @relation(fields: [ownerId], references: [id])
   auctions         Auction[]
+  tradeOffers      TradeOffer[]
 
   @@index([status])
   @@index([ownerId])
@@ -193,6 +197,7 @@ model Product {
   category        Category?           @relation(fields: [categoryId], references: [id])
   store           Store               @relation(fields: [storeId], references: [id], onDelete: Cascade)
   wishlistItems   WishlistItem[]
+  tradeOffers     TradeOffer[]
 
   @@unique([storeId, slug])
   @@index([status, createdAt])
@@ -493,6 +498,11 @@ enum NotificationType {
   REVIEW_RECEIVED
   AUCTION_WON
   AUCTION_ENDED
+  TRADE_RECEIVED
+  TRADE_ACCEPTED
+  TRADE_DECLINED
+  TRADE_CANCELLED
+  BEG_RECEIVED
 }
 
 enum AuctionStatus {
@@ -594,4 +604,55 @@ model AuctionMessage {
 
   @@index([auctionId, createdAt])
   @@map("auction_messages")
+}
+
+// ==========================================
+// TRADE OFFERS (Bartering System)
+// ==========================================
+
+enum TradeOfferStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+  COMPLETED
+}
+
+model TradeOffer {
+  id              String            @id @default(uuid())
+  buyerId         String            @map("buyer_id")
+  merchantId      String            @map("merchant_id")
+  storeId         String            @map("store_id")
+  productId       String            @map("product_id")
+
+  // What the buyer is offering
+  offerDescription String           @map("offer_description")
+  offerAmount      Decimal?         @map("offer_amount") @db.Decimal(20, 6) // Optional cash component (USDC)
+  offerImages      String[]         @map("offer_images") // Images of items they're offering
+
+  // Status
+  status          TradeOfferStatus  @default(PENDING)
+
+  // Messages/negotiation
+  buyerMessage    String?           @map("buyer_message")
+  merchantReply   String?           @map("merchant_reply")
+
+  // Tracking
+  viewedAt        DateTime?         @map("viewed_at")
+  respondedAt     DateTime?         @map("responded_at")
+
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  // Relations
+  buyer           User              @relation("TradeOfferBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  merchant        User              @relation("TradeOfferMerchant", fields: [merchantId], references: [id], onDelete: Cascade)
+  store           Store             @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  product         Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([buyerId, status])
+  @@index([merchantId, status])
+  @@index([storeId, status])
+  @@index([productId])
+  @@map("trade_offers")
 }

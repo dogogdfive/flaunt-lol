@@ -19,6 +19,11 @@ import {
   Minus,
   Plus,
   AlertTriangle,
+  ArrowLeftRight,
+  X,
+  DollarSign,
+  Image as ImageIcon,
+  Upload,
 } from 'lucide-react';
 
 interface Variant {
@@ -44,6 +49,8 @@ interface Product {
     slug: string;
     logoUrl: string | null;
     isVerified: boolean;
+    tradesEnabled?: boolean;
+    ownerId?: string;
   };
   category: { id: string; name: string; slug: string } | null;
   bondingEnabled: boolean;
@@ -76,6 +83,15 @@ export default function ProductClient({ product, relatedProducts }: Props) {
   const [addingToCart, setAddingToCart] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
+
+  // Trade state
+  const [showTradeModal, setShowTradeModal] = useState(false);
+  const [tradeDescription, setTradeDescription] = useState('');
+  const [tradeAmount, setTradeAmount] = useState('');
+  const [tradeMessage, setTradeMessage] = useState('');
+  const [tradeImages, setTradeImages] = useState<string[]>([]);
+  const [submittingTrade, setSubmittingTrade] = useState(false);
+  const [tradeSuccess, setTradeSuccess] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -147,6 +163,58 @@ export default function ProductClient({ product, relatedProducts }: Props) {
       console.error('Wishlist error:', error);
     }
   };
+
+  const handleSubmitTrade = async () => {
+    if (!connected || !wallet.publicKey) {
+      setVisible(true);
+      return;
+    }
+
+    if (!tradeDescription.trim()) {
+      alert('Please describe what you are offering');
+      return;
+    }
+
+    setSubmittingTrade(true);
+    try {
+      const res = await fetch('/api/trades', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': wallet.publicKey.toBase58(),
+        },
+        body: JSON.stringify({
+          productId: product.id,
+          offerDescription: tradeDescription,
+          offerAmount: tradeAmount || null,
+          offerImages: tradeImages,
+          buyerMessage: tradeMessage || null,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setTradeSuccess(true);
+        setTradeDescription('');
+        setTradeAmount('');
+        setTradeMessage('');
+        setTradeImages([]);
+        setTimeout(() => {
+          setShowTradeModal(false);
+          setTradeSuccess(false);
+        }, 2000);
+      } else {
+        alert(data.error || 'Failed to submit trade offer');
+      }
+    } catch (error) {
+      console.error('Trade submit error:', error);
+      alert('Failed to submit trade offer');
+    } finally {
+      setSubmittingTrade(false);
+    }
+  };
+
+  const canTrade = product.store.tradesEnabled && !product.isPreview && wallet.publicKey?.toBase58() !== product.store.ownerId;
 
   const bondingPercent = product.bondingEnabled 
     ? Math.min((product.bondingCurrent / product.bondingGoal) * 100, 100)
@@ -378,6 +446,23 @@ export default function ProductClient({ product, relatedProducts }: Props) {
               </button>
             </div>
 
+            {/* Trade Button */}
+            {canTrade && (
+              <button
+                onClick={() => {
+                  if (!connected) {
+                    setVisible(true);
+                  } else {
+                    setShowTradeModal(true);
+                  }
+                }}
+                className="w-full py-3 mb-6 rounded-xl font-medium flex items-center justify-center gap-2 bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-600/30 transition-colors"
+              >
+                <ArrowLeftRight className="w-5 h-5" />
+                Make a Trade Offer
+              </button>
+            )}
+
             {/* Description */}
             {product.description && (
               <div className="prose prose-invert max-w-none">
@@ -421,6 +506,127 @@ export default function ProductClient({ product, relatedProducts }: Props) {
           </div>
         )}
       </div>
+
+      {/* Trade Offer Modal */}
+      {showTradeModal && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111827] border border-gray-800 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <ArrowLeftRight className="w-5 h-5 text-cyan-400" />
+                Make a Trade Offer
+              </h3>
+              <button
+                onClick={() => setShowTradeModal(false)}
+                className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+
+            {tradeSuccess ? (
+              <div className="p-8 text-center">
+                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Check className="w-8 h-8 text-green-400" />
+                </div>
+                <h4 className="text-xl font-semibold text-white mb-2">Trade Offer Sent!</h4>
+                <p className="text-gray-400">The seller will be notified of your offer.</p>
+              </div>
+            ) : (
+              <div className="p-6 space-y-4">
+                {/* Product Info */}
+                <div className="flex items-center gap-4 p-3 bg-gray-800/50 rounded-lg">
+                  <img
+                    src={product.images[0] || '/placeholder.png'}
+                    alt={product.name}
+                    className="w-16 h-16 rounded-lg object-cover"
+                  />
+                  <div>
+                    <h4 className="text-white font-medium">{product.name}</h4>
+                    <p className="text-gray-400 text-sm">from {product.store.name}</p>
+                    <p className="text-blue-400 font-semibold">
+                      Value: {currentPrice.toFixed(4)} SOL
+                    </p>
+                  </div>
+                </div>
+
+                {/* Offer Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    What are you offering? <span className="text-red-400">*</span>
+                  </label>
+                  <textarea
+                    value={tradeDescription}
+                    onChange={(e) => setTradeDescription(e.target.value)}
+                    placeholder="Describe the item(s) you want to trade..."
+                    rows={3}
+                    className="w-full px-4 py-3 bg-[#1f2937] border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 resize-none"
+                  />
+                </div>
+
+                {/* Cash Component */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Add Cash (USDC) - Optional
+                  </label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                    <input
+                      type="number"
+                      value={tradeAmount}
+                      onChange={(e) => setTradeAmount(e.target.value)}
+                      placeholder="0.00"
+                      step="0.01"
+                      min="0"
+                      className="w-full pl-10 pr-4 py-3 bg-[#1f2937] border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Sweeten the deal with some extra cash
+                  </p>
+                </div>
+
+                {/* Message */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Personal Message (Optional)
+                  </label>
+                  <textarea
+                    value={tradeMessage}
+                    onChange={(e) => setTradeMessage(e.target.value)}
+                    placeholder="Add a message to the seller..."
+                    rows={2}
+                    className="w-full px-4 py-3 bg-[#1f2937] border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 resize-none"
+                  />
+                </div>
+
+                {/* Info Box */}
+                <div className="p-3 bg-cyan-900/20 border border-cyan-500/20 rounded-lg">
+                  <p className="text-sm text-cyan-300">
+                    The seller will review your offer and can accept, decline, or counter. You&apos;ll be notified of their response.
+                  </p>
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  onClick={handleSubmitTrade}
+                  disabled={submittingTrade || !tradeDescription.trim()}
+                  className="w-full py-3 bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-700 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+                >
+                  {submittingTrade ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <ArrowLeftRight className="w-5 h-5" />
+                      Submit Trade Offer
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

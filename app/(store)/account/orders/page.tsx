@@ -196,6 +196,7 @@ export default function CustomerOrdersPage() {
           </Link>
           <nav className="flex items-center gap-6">
             <Link href="/account/orders" className="text-white font-medium">Orders</Link>
+            <Link href="/account/trades" className="text-gray-400 hover:text-white">Trades</Link>
             <Link href="/account/wishlist" className="text-gray-400 hover:text-white">Wishlist</Link>
           </nav>
         </div>

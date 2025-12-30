@@ -29,18 +29,21 @@ import {
   Phone,
   MapPin,
   Building,
+  ArrowLeftRight,
 } from 'lucide-react';
 
 interface NotificationCounts {
   pendingOrders: number;
   pendingPayouts: number;
   unreadMessages: number;
+  pendingTrades: number;
 }
 
 const navigation = [
   { name: 'Dashboard', href: '/merchant/dashboard', icon: LayoutDashboard, countKey: null },
   { name: 'Products', href: '/merchant/products', icon: Package, countKey: null },
   { name: 'Orders', href: '/merchant/orders', icon: ShoppingCart, countKey: 'pendingOrders' as const },
+  { name: 'Trades', href: '/merchant/trades', icon: ArrowLeftRight, countKey: 'pendingTrades' as const },
   { name: 'Payouts', href: '/merchant/payouts', icon: DollarSign, countKey: 'pendingPayouts' as const },
   { name: 'Messages', href: '/merchant/messages', icon: MessageSquare, countKey: 'unreadMessages' as const },
   { name: 'Store Settings', href: '/merchant/settings', icon: Settings, countKey: null },
@@ -64,6 +67,7 @@ export default function MerchantLayout({
     pendingOrders: 0,
     pendingPayouts: 0,
     unreadMessages: 0,
+    pendingTrades: 0,
   });
   const [userProfile, setUserProfile] = useState<{ avatarUrl: string | null; username: string | null } | null>(null);
 
@@ -116,17 +120,21 @@ export default function MerchantLayout({
   const fetchNotificationCounts = async () => {
     if (!publicKey) return;
     try {
-      const [ordersRes, messagesRes] = await Promise.all([
+      const [ordersRes, messagesRes, tradesRes] = await Promise.all([
         fetch('/api/merchant/orders', {
           headers: { 'x-wallet-address': publicKey.toBase58() },
         }),
         fetch('/api/messages', {
           headers: { 'x-wallet-address': publicKey.toBase58() },
         }),
+        fetch('/api/merchant/trades', {
+          headers: { 'x-wallet-address': publicKey.toBase58() },
+        }),
       ]);
 
       const ordersData = await ordersRes.json();
       const messagesData = await messagesRes.json();
+      const tradesData = await tradesRes.json();
 
       // Get archived/dismissed orders from localStorage
       let archivedOrderIds: string[] = [];
@@ -146,6 +154,7 @@ export default function MerchantLayout({
         pendingOrders: needsFulfillmentCount,
         pendingPayouts: 0,
         unreadMessages: messagesData.conversations?.reduce((sum: number, c: any) => sum + (c.unreadCount || 0), 0) || 0,
+        pendingTrades: tradesData.stats?.pending || 0,
       });
     } catch (err) {
       console.error('Failed to fetch notification counts:', err);

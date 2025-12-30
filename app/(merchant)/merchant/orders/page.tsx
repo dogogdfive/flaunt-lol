@@ -25,6 +25,8 @@ import {
   StickyNote,
   DollarSign,
 } from 'lucide-react';
+import { showSuccess, showError } from '@/lib/toast';
+import { logger } from '@/lib/logger';
 
 interface Order {
   id: string;
@@ -310,8 +312,14 @@ export default function MerchantOrders() {
       setSelectedCarrier('ups');
       setCustomTrackingUrl('');
 
+      showSuccess('Order marked as shipped!');
+      logger.info('Order fulfilled', { orderId: selectedOrder.id });
+
     } catch (error) {
-      setFulfillError(error instanceof Error ? error.message : 'Something went wrong');
+      const errorMsg = error instanceof Error ? error.message : 'Something went wrong';
+      setFulfillError(errorMsg);
+      showError(errorMsg);
+      logger.error('Failed to fulfill order', { error, orderId: selectedOrder?.id });
     } finally {
       setFulfillLoading(false);
     }
@@ -338,6 +346,7 @@ export default function MerchantOrders() {
       localStorage.setItem('merchant_archived_orders', JSON.stringify([...newSet]));
       return newSet;
     });
+    showSuccess('Order dismissed');
   };
 
   // Check if order needs fulfillment (paid but not shipped)

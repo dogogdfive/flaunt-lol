@@ -10,6 +10,7 @@ import {
   LedgerWalletAdapter,
 } from '@solana/wallet-adapter-wallets';
 import { clusterApiUrl } from '@solana/web3.js';
+import { Toaster } from 'react-hot-toast';
 import LoadingScreen from '@/components/LoadingScreen';
 
 // Import wallet adapter CSS
@@ -48,6 +49,19 @@ export function Providers({ children }: { children: ReactNode }) {
     <ConnectionProvider endpoint={RPC_URL}>
       <WalletProvider wallets={wallets} autoConnect={mounted}>
         <WalletModalProvider>
+          {/* Global Toast Notifications */}
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: '#1F2937',
+                color: '#fff',
+                borderRadius: '12px',
+                border: '1px solid rgba(255,255,255,0.1)',
+              },
+            }}
+          />
           {showLoading && <LoadingScreen />}
           <div className={showLoading ? 'opacity-0' : 'opacity-100 transition-opacity duration-300'}>
             {children}

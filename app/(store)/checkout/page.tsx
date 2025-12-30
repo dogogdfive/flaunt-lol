@@ -40,6 +40,9 @@ import {
   ExternalLink,
   QrCode,
 } from 'lucide-react';
+import { showSuccess, showError, showLoading, dismissToast, showTxSuccess } from '@/lib/toast';
+import { parseTxError, logTxError } from '@/lib/tx-errors';
+import { logger } from '@/lib/logger';
 
 // Solana config
 const SOLANA_RPC = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
@@ -245,9 +248,13 @@ export default function CheckoutPage() {
 
       if (res.ok) {
         fetchCart();
+      } else {
+        const data = await res.json();
+        showError(data.error || 'Failed to update quantity');
       }
     } catch (error) {
-      console.error('Failed to update quantity:', error);
+      logger.error('Failed to update quantity', { error, cartItemId });
+      showError('Failed to update cart');
     } finally {
       setUpdating(null);
     }
@@ -257,16 +264,22 @@ export default function CheckoutPage() {
     if (!publicKey) return;
     setUpdating(cartItemId);
     try {
-      await fetch(`/api/cart?id=${cartItemId}`, {
+      const res = await fetch(`/api/cart?id=${cartItemId}`, {
         method: 'DELETE',
         credentials: 'include',
         headers: {
           'x-wallet-address': publicKey.toBase58(),
         },
       });
-      fetchCart();
+      if (res.ok) {
+        showSuccess('Item removed from cart');
+        fetchCart();
+      } else {
+        showError('Failed to remove item');
+      }
     } catch (error) {
-      console.error('Failed to remove item:', error);
+      logger.error('Failed to remove item', { error, cartItemId });
+      showError('Failed to remove item');
     } finally {
       setUpdating(null);
     }
@@ -443,33 +456,19 @@ export default function CheckoutPage() {
       }
 
       // 7. Success!
+      logger.payment('Payment completed', { txSignature, orderId: orderData.orders[0]?.id, amount: totalUsdc, currency: paymentCurrency });
+      showTxSuccess(txSignature);
       setOrderResult({ ...orderData, txSignature });
       setStep('success');
 
     } catch (err: any) {
-      console.error('Checkout error:', err);
-      // Handle specific errors
-      if (err.message?.includes('User rejected') || err.message?.includes('rejected')) {
-        setError('Transaction cancelled');
-      } else if (err.message?.includes('Insufficient USDC') || err.message?.includes('need USDC')) {
-        setError(err.message);
-      } else if (err.message?.includes('Insufficient SOL balance')) {
-        setError(err.message);
-      } else if (err.message?.includes('insufficient funds') || err.message?.includes('0x1')) {
-        setError('Insufficient balance for transaction. Please check your wallet.');
-      } else if (err.message?.includes('blockhash') || err.message?.includes('expired')) {
-        setError('Transaction expired. Please try again.');
-      } else if (err.message?.includes('Transaction simulation failed')) {
-        // Parse the simulation error for more details
-        const match = err.message.match(/Error Message: ([^.]+)/);
-        if (match) {
-          setError(`Transaction failed: ${match[1]}`);
-        } else {
-          setError('Transaction simulation failed. Please check your balance and try again.');
-        }
-      } else {
-        setError(err instanceof Error ? err.message : 'Checkout failed. Please try again.');
-      }
+      // Log error with context
+      logTxError(err, { action: 'checkout', currency: paymentCurrency, amount: totalUsdc });
+
+      // Parse error into user-friendly message
+      const userMessage = parseTxError(err);
+      setError(userMessage);
+      showError(userMessage);
     } finally {
       setCheckoutLoading(false);
     }

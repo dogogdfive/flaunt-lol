@@ -23,6 +23,8 @@ import {
   Camera,
 } from 'lucide-react';
 import { useRef } from 'react';
+import { showSuccess, showError } from '@/lib/toast';
+import { logger } from '@/lib/logger';
 
 interface UserProfile {
   id: string;
@@ -167,9 +169,13 @@ export default function ProfilePage() {
       const data = await response.json();
       setAvatarUrl(data.url);
       setSuccess('Avatar uploaded! Click Save to keep changes.');
+      showSuccess('Avatar uploaded! Click Save to keep changes.');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to upload avatar');
+      const errorMsg = err instanceof Error ? err.message : 'Failed to upload avatar';
+      setError(errorMsg);
+      showError(errorMsg);
+      logger.error('Failed to upload avatar', { error: err });
     } finally {
       setUploadingAvatar(false);
     }
@@ -201,9 +207,14 @@ export default function ProfilePage() {
 
       setProfile(data.user);
       setSuccess('Profile updated successfully!');
+      showSuccess('Profile updated successfully!');
+      logger.info('Profile updated', { userId: data.user.id });
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save profile');
+      const errorMsg = err instanceof Error ? err.message : 'Failed to save profile';
+      setError(errorMsg);
+      showError(errorMsg);
+      logger.error('Failed to save profile', { error: err });
     } finally {
       setSaving(false);
     }

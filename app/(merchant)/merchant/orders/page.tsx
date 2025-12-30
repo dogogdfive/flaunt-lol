@@ -529,8 +529,6 @@ export default function MerchantOrders() {
                 onClick={() => {
                   setShowFulfillModal(false);
                   setFulfillError('');
-                  setShippingRates([]);
-                  setSelectedRate(null);
                 }}
                 className="p-2 text-gray-400 hover:text-white hover:bg-[#1f2937] rounded-lg"
               >
@@ -605,8 +603,6 @@ export default function MerchantOrders() {
                 onClick={() => {
                   setShowFulfillModal(false);
                   setFulfillError('');
-                  setShippingRates([]);
-                  setSelectedRate(null);
                 }}
                 className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
               >

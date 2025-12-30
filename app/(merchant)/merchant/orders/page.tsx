@@ -21,10 +21,7 @@ import {
   Mail,
   FileText,
   Printer,
-  Tag,
   StickyNote,
-  DollarSign,
-  Loader2,
 } from 'lucide-react';
 import { showSuccess, showError } from '@/lib/toast';
 import { logger } from '@/lib/logger';
@@ -130,7 +127,6 @@ export default function MerchantOrders() {
   const [showFulfillModal, setShowFulfillModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
-  const [showLabelModal, setShowLabelModal] = useState(false);
   const [fulfillLoading, setFulfillLoading] = useState(false);
   const [fulfillError, setFulfillError] = useState('');
 
@@ -142,12 +138,6 @@ export default function MerchantOrders() {
   // Notes state
   const [notes, setNotes] = useState('');
   const [notesLoading, setNotesLoading] = useState(false);
-
-  // Shipping label state
-  const [shippingRates, setShippingRates] = useState<any[]>([]);
-  const [ratesLoading, setRatesLoading] = useState(false);
-  const [selectedRate, setSelectedRate] = useState<string | null>(null);
-  const [labelLoading, setLabelLoading] = useState(false);
 
   useEffect(() => {
     if (publicKey) {
@@ -194,76 +184,6 @@ export default function MerchantOrders() {
       console.error('Failed to save notes:', error);
     } finally {
       setNotesLoading(false);
-    }
-  };
-
-  const fetchShippingRates = async () => {
-    if (!selectedOrder || !publicKey) return;
-    setRatesLoading(true);
-    setShippingRates([]);
-    try {
-      const res = await fetch(`/api/merchant/orders/${selectedOrder.id}/shipping`, {
-        headers: { 'x-wallet-address': publicKey.toBase58() },
-      });
-      const data = await res.json();
-      if (data.success && data.rates) {
-        setShippingRates(data.rates);
-      } else {
-        setFulfillError(data.error || 'Failed to get rates');
-      }
-    } catch (error) {
-      console.error('Failed to get shipping rates:', error);
-      setFulfillError('Failed to connect to shipping service');
-    } finally {
-      setRatesLoading(false);
-    }
-  };
-
-  const purchaseShippingLabel = async () => {
-    if (!selectedOrder || !selectedRate || !publicKey) return;
-    setLabelLoading(true);
-    try {
-      const rate = shippingRates.find(r => r.id === selectedRate);
-      const res = await fetch(`/api/merchant/orders/${selectedOrder.id}/shipping`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-wallet-address': publicKey.toBase58(),
-        },
-        body: JSON.stringify({
-          rateId: selectedRate,
-          provider: rate?.provider,
-          price: rate?.price,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        // Update order with label info
-        setOrders(prev =>
-          prev.map(o => o.id === selectedOrder.id ? {
-            ...o,
-            trackingNumber: data.label.trackingNumber,
-            trackingUrl: data.label.trackingUrl,
-            labelUrl: data.label.labelUrl,
-            status: 'SHIPPED',
-            shippedAt: new Date().toISOString(),
-          } : o)
-        );
-        setShowLabelModal(false);
-        setShowFulfillModal(false);
-        setSelectedRate(null);
-        setShippingRates([]);
-        // Show success with label cost info
-        const costMsg = data.labelCost ? ` ($${data.labelCost.toFixed(2)} deducted from payout)` : '';
-        showSuccess(`Label purchased! Order marked as shipped.${costMsg}`);
-      } else {
-        setFulfillError(data.error || 'Failed to purchase label');
-      }
-    } catch (error) {
-      console.error('Failed to purchase label:', error);
-      setFulfillError('Failed to purchase shipping label');
-    } finally {
-      setLabelLoading(false);
     }
   };
 
@@ -637,77 +557,7 @@ export default function MerchantOrders() {
                 </div>
               </div>
 
-              {/* Buy Label Section */}
-              <div className="border border-purple-500/30 rounded-lg p-4 bg-purple-500/5">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-purple-400">Buy Shipping Label</h3>
-                  {!shippingRates.length && !ratesLoading && (
-                    <button
-                      onClick={fetchShippingRates}
-                      className="px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 transition-colors"
-                    >
-                      Get Rates
-                    </button>
-                  )}
-                </div>
-
-                {ratesLoading && (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
-                    <span className="ml-2 text-gray-400 text-sm">Fetching rates...</span>
-                  </div>
-                )}
-
-                {shippingRates.length > 0 && (
-                  <div className="space-y-2">
-                    {shippingRates.map((rate) => (
-                      <button
-                        key={rate.id}
-                        onClick={() => setSelectedRate(rate.id)}
-                        className={`w-full p-3 rounded-lg border text-left transition-colors ${
-                          selectedRate === rate.id
-                            ? 'border-purple-500 bg-purple-500/10'
-                            : 'border-gray-700 hover:border-gray-600'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-white font-medium text-sm">{rate.provider} - {rate.service}</div>
-                            <div className="text-gray-500 text-xs">{rate.estimatedDays} business days</div>
-                          </div>
-                          <div className="text-green-400 font-semibold">${rate.price}</div>
-                        </div>
-                      </button>
-                    ))}
-                    <button
-                      onClick={purchaseShippingLabel}
-                      disabled={!selectedRate || labelLoading}
-                      className="w-full mt-3 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors font-medium"
-                    >
-                      {labelLoading ? 'Purchasing...' : 'Purchase Label & Ship'}
-                    </button>
-                    <p className="text-xs text-gray-500 mt-2 text-center">
-                      Label cost will be deducted from your payout
-                    </p>
-                  </div>
-                )}
-
-                {!shippingRates.length && !ratesLoading && (
-                  <p className="text-gray-500 text-xs">Click "Get Rates" to see shipping options from USPS, UPS, FedEx, and more.</p>
-                )}
-              </div>
-
-              {/* Divider */}
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-700"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-3 bg-[#111827] text-gray-500">or enter tracking manually</span>
-                </div>
-              </div>
-
-              {/* Manual Tracking Section */}
+              {/* Tracking Section */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Tracking Number</label>
                 <input
@@ -950,17 +800,6 @@ export default function MerchantOrders() {
                     <button
                       onClick={() => {
                         setShowDetailsModal(false);
-                        setShowLabelModal(true);
-                        fetchShippingRates();
-                      }}
-                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
-                    >
-                      <Tag className="w-4 h-4" />
-                      Buy Label
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowDetailsModal(false);
                         setShowFulfillModal(true);
                       }}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -1039,141 +878,6 @@ export default function MerchantOrders() {
         </div>
       )}
 
-      {/* Shipping Label Modal */}
-      {showLabelModal && selectedOrder && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111827] border border-gray-800 rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800 sticky top-0 bg-[#111827]">
-              <h2 className="text-lg font-semibold text-white">
-                Buy Shipping Label - {selectedOrder.orderNumber}
-              </h2>
-              <button
-                onClick={() => {
-                  setShowLabelModal(false);
-                  setShippingRates([]);
-                  setSelectedRate(null);
-                  setFulfillError('');
-                }}
-                className="p-2 text-gray-400 hover:text-white hover:bg-[#1f2937] rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              {fulfillError && (
-                <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  {fulfillError}
-                </div>
-              )}
-
-              {/* Ship To Address */}
-              <div className="bg-[#1f2937] rounded-lg p-4">
-                <div className="text-sm font-medium text-gray-300 mb-2">Ship to:</div>
-                <div className="text-sm text-gray-400">
-                  {selectedOrder.shippingAddress?.name}<br />
-                  {selectedOrder.shippingAddress?.line1}<br />
-                  {selectedOrder.shippingAddress?.line2 && <>{selectedOrder.shippingAddress.line2}<br /></>}
-                  {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state} {selectedOrder.shippingAddress?.postalCode}<br />
-                  {selectedOrder.shippingAddress?.country}
-                </div>
-              </div>
-
-              {/* Shipping Rates */}
-              {ratesLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
-                  <span className="ml-3 text-gray-400">Getting shipping rates...</span>
-                </div>
-              ) : shippingRates.length > 0 ? (
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Select a shipping rate:
-                  </label>
-                  {shippingRates.map((rate) => (
-                    <button
-                      key={rate.id}
-                      onClick={() => setSelectedRate(rate.id)}
-                      className={`w-full p-4 rounded-lg border transition-colors text-left ${
-                        selectedRate === rate.id
-                          ? 'bg-blue-600/20 border-blue-500 text-white'
-                          : 'bg-[#1f2937] border-gray-700 text-gray-300 hover:border-gray-600'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium">{rate.provider}</div>
-                          <div className="text-sm text-gray-400">
-                            {rate.servicelevel?.name || rate.service || 'Standard'}
-                          </div>
-                          {rate.estimated_days && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              Est. {rate.estimated_days} day{rate.estimated_days > 1 ? 's' : ''}
-                            </div>
-                          )}
-                        </div>
-                        <div className="text-lg font-bold">
-                          ${rate.price || rate.amount}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <p>No shipping rates available.</p>
-                  <p className="text-sm mt-2">Make sure your store has a valid return address configured.</p>
-                  <button
-                    onClick={fetchShippingRates}
-                    className="mt-4 px-4 py-2 bg-[#1f2937] text-gray-300 rounded-lg hover:bg-gray-700 transition-colors"
-                  >
-                    Try Again
-                  </button>
-                </div>
-              )}
-
-              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
-                <p className="text-sm text-blue-300">
-                  Purchasing a label will automatically add tracking and mark this order as shipped.
-                </p>
-                <p className="text-xs text-blue-400/70 mt-1">
-                  Label cost will be deducted from your payout.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-800 sticky bottom-0 bg-[#111827]">
-              <button
-                onClick={() => {
-                  setShowLabelModal(false);
-                  setShippingRates([]);
-                  setSelectedRate(null);
-                  setFulfillError('');
-                }}
-                className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={purchaseShippingLabel}
-                disabled={labelLoading || !selectedRate}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-              >
-                {labelLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Purchasing...
-                  </>
-                ) : (
-                  <>
-                    <DollarSign className="w-4 h-4" />
-                    Purchase Label
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

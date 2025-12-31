@@ -1,9 +1,9 @@
 // app/slabs/page.tsx
-// SLAB - Immortalize Your Assets - styled in flaunt.lol theme
+// SLAB - Immortalize Your Assets - Jukebox style with Liquid Glass
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 
 // Product data
@@ -15,7 +15,8 @@ const products = [
     description: 'Premium custody slab with your NFT securely stored. Your asset is held in our secure vault.',
     features: ['Custody of your NFT', 'Premium graded case', 'Certificate of authenticity', 'Priority processing'],
     badge: 'CUSTODY',
-    badgeColor: 'bg-purple-500',
+    badgeColor: 'from-purple-500 to-violet-600',
+    image: '/slab1.png',
   },
   {
     id: 'slab',
@@ -24,7 +25,8 @@ const products = [
     description: 'High-quality replica slab featuring your NFT artwork. Keep your original asset in your wallet.',
     features: ['Keep your NFT', 'Premium replica case', 'High-quality print', 'Standard processing'],
     badge: 'REPLICA',
-    badgeColor: 'bg-blue-500',
+    badgeColor: 'from-blue-500 to-cyan-500',
+    image: '/slab2.png',
   },
   {
     id: 'keychain-plus',
@@ -33,7 +35,8 @@ const products = [
     description: 'Portable custody keychain with your NFT stored. Carry your authenticated asset everywhere.',
     features: ['Custody of your NFT', 'Durable keychain design', 'Certificate of authenticity', 'Priority processing'],
     badge: 'CUSTODY',
-    badgeColor: 'bg-purple-500',
+    badgeColor: 'from-purple-500 to-violet-600',
+    image: '/slab3.png',
   },
   {
     id: 'keychain',
@@ -42,7 +45,8 @@ const products = [
     description: 'Stylish replica keychain featuring your NFT artwork. Perfect for everyday carry.',
     features: ['Keep your NFT', 'Durable keychain design', 'High-quality print', 'Standard processing'],
     badge: 'REPLICA',
-    badgeColor: 'bg-blue-500',
+    badgeColor: 'from-blue-500 to-cyan-500',
+    image: '/slab1.png',
   },
 ];
 
@@ -55,37 +59,278 @@ const chains = [
 
 // Features list
 const features = [
-  {
-    title: 'Multi-Chain Support',
-    description: 'Connect wallets from Solana, Ethereum, and Bitcoin to slab any NFT.',
-    icon: '🔗',
-  },
-  {
-    title: 'Instant Wallet Scan',
-    description: 'Automatically detect and display all your NFTs with one click.',
-    icon: '📡',
-  },
-  {
-    title: 'Professional Grading',
-    description: 'Each slab features authentication and grading details.',
-    icon: '🏆',
-  },
-  {
-    title: 'Order Tracking',
-    description: 'Track your order from production to delivery with real-time updates.',
-    icon: '📦',
-  },
-  {
-    title: 'Secure Custody',
-    description: 'Custody options store your NFT securely while you display the physical slab.',
-    icon: '🔒',
-  },
-  {
-    title: 'Global Shipping',
-    description: 'We ship worldwide with tracking and insurance included.',
-    icon: '🌍',
-  },
+  { title: 'Multi-Chain Support', description: 'Connect wallets from Solana, Ethereum, and Bitcoin to slab any NFT.', icon: '🔗' },
+  { title: 'Instant Wallet Scan', description: 'Automatically detect and display all your NFTs with one click.', icon: '📡' },
+  { title: 'Professional Grading', description: 'Each slab features authentication and grading details.', icon: '🏆' },
+  { title: 'Order Tracking', description: 'Track your order from production to delivery with real-time updates.', icon: '📦' },
+  { title: 'Secure Custody', description: 'Custody options store your NFT securely while you display the physical slab.', icon: '🔒' },
+  { title: 'Global Shipping', description: 'We ship worldwide with tracking and insurance included.', icon: '🌍' },
 ];
+
+// Liquid Glass Jukebox Component
+function JukeboxSelector({
+  selectedIndex,
+  onSelect
+}: {
+  selectedIndex: number;
+  onSelect: (index: number) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
+  const [isHovering, setIsHovering] = useState(false);
+
+  // Handle mouse movement for liquid glass light bending effect
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    setMousePos({ x, y });
+  };
+
+  // Navigate through products
+  const goNext = () => {
+    onSelect((selectedIndex + 1) % products.length);
+  };
+
+  const goPrev = () => {
+    onSelect((selectedIndex - 1 + products.length) % products.length);
+  };
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') goPrev();
+      if (e.key === 'ArrowRight') goNext();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedIndex]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative w-full max-w-5xl mx-auto"
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+    >
+      {/* Liquid Glass Container - The "Jukebox Frame" */}
+      <div
+        className="relative rounded-3xl p-8 md:p-12 overflow-hidden"
+        style={{
+          background: `
+            radial-gradient(
+              ellipse at ${mousePos.x * 100}% ${mousePos.y * 100}%,
+              rgba(255,255,255,0.08) 0%,
+              rgba(255,255,255,0.02) 50%,
+              transparent 70%
+            ),
+            linear-gradient(
+              165deg,
+              rgba(255,255,255,0.06) 0%,
+              rgba(255,255,255,0.02) 50%,
+              rgba(255,255,255,0.04) 100%
+            )
+          `,
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          boxShadow: `
+            0 0 0 1px rgba(255,255,255,0.1),
+            0 20px 60px rgba(0,0,0,0.4),
+            inset 0 1px 0 rgba(255,255,255,0.1)
+          `,
+        }}
+      >
+        {/* Dynamic highlight that follows mouse - Liquid Glass Lensing */}
+        <div
+          className="absolute pointer-events-none transition-opacity duration-300"
+          style={{
+            width: '300px',
+            height: '300px',
+            left: `calc(${mousePos.x * 100}% - 150px)`,
+            top: `calc(${mousePos.y * 100}% - 150px)`,
+            background: 'radial-gradient(circle, rgba(168,85,247,0.15) 0%, transparent 70%)',
+            opacity: isHovering ? 1 : 0,
+            filter: 'blur(40px)',
+          }}
+        />
+
+        {/* Top edge highlight */}
+        <div
+          className="absolute top-0 left-8 right-8 h-[1px]"
+          style={{
+            background: `linear-gradient(90deg, transparent, rgba(255,255,255,${0.15 + mousePos.x * 0.1}), transparent)`,
+          }}
+        />
+
+        {/* Jukebox Title */}
+        <div className="text-center mb-8">
+          <h2 className="text-2xl md:text-3xl font-bold mb-2">Select Your Slab</h2>
+          <p className="text-gray-400 text-sm">Use arrows or click to browse</p>
+        </div>
+
+        {/* Carousel Container */}
+        <div className="relative h-[420px] md:h-[480px] flex items-center justify-center">
+          {/* Navigation Arrows */}
+          <button
+            onClick={goPrev}
+            className="absolute left-0 md:left-4 z-20 w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110"
+            style={{
+              background: 'rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.1)',
+            }}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+
+          <button
+            onClick={goNext}
+            className="absolute right-0 md:right-4 z-20 w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110"
+            style={{
+              background: 'rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.1)',
+            }}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+
+          {/* Product Cards - Jukebox Style Arrangement */}
+          <div className="relative w-full h-full flex items-center justify-center">
+            {products.map((product, index) => {
+              // Calculate position relative to selected
+              const diff = index - selectedIndex;
+              const normalizedDiff = ((diff + products.length + Math.floor(products.length / 2)) % products.length) - Math.floor(products.length / 2);
+
+              // Position, rotation, and scale based on distance from center
+              const isCenter = normalizedDiff === 0;
+              const xOffset = normalizedDiff * 180;
+              const zOffset = Math.abs(normalizedDiff) * -100;
+              const rotation = normalizedDiff * -15;
+              const scale = isCenter ? 1 : 0.75 - Math.abs(normalizedDiff) * 0.1;
+              const opacity = isCenter ? 1 : 0.6 - Math.abs(normalizedDiff) * 0.15;
+              const blur = isCenter ? 0 : Math.abs(normalizedDiff) * 2;
+
+              return (
+                <div
+                  key={product.id}
+                  onClick={() => onSelect(index)}
+                  className="absolute cursor-pointer transition-all duration-500 ease-out"
+                  style={{
+                    transform: `
+                      translateX(${xOffset}px)
+                      translateZ(${zOffset}px)
+                      rotateY(${rotation}deg)
+                      scale(${scale})
+                    `,
+                    opacity: Math.max(0, opacity),
+                    filter: `blur(${blur}px)`,
+                    zIndex: 10 - Math.abs(normalizedDiff),
+                    transformStyle: 'preserve-3d',
+                  }}
+                >
+                  {/* Product Card */}
+                  <div
+                    className={`relative w-[240px] md:w-[280px] rounded-2xl overflow-hidden transition-shadow duration-300 ${
+                      isCenter ? 'shadow-2xl shadow-purple-500/30' : ''
+                    }`}
+                    style={{
+                      background: 'linear-gradient(165deg, rgba(31,41,55,0.9) 0%, rgba(17,24,39,0.95) 100%)',
+                      border: isCenter ? '2px solid rgba(168,85,247,0.5)' : '1px solid rgba(55,65,81,0.8)',
+                    }}
+                  >
+                    {/* Badge */}
+                    <div className={`absolute top-3 right-3 px-2 py-1 rounded-md text-xs font-bold bg-gradient-to-r ${product.badgeColor} z-10`}>
+                      {product.badge}
+                    </div>
+
+                    {/* Product Image */}
+                    <div className="relative h-[200px] md:h-[240px] overflow-hidden">
+                      <div
+                        className="absolute inset-0"
+                        style={{
+                          background: 'linear-gradient(to bottom, transparent 60%, rgba(17,24,39,1) 100%)',
+                          zIndex: 1,
+                        }}
+                      />
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+
+                    {/* Product Info */}
+                    <div className="p-5">
+                      <h3 className="text-xl font-bold mb-1">{product.name}</h3>
+                      <div className="flex items-baseline gap-2 mb-3">
+                        <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                          ${product.price.toFixed(2)}
+                        </span>
+                        <span className="text-gray-500 text-sm">USD</span>
+                      </div>
+
+                      {isCenter && (
+                        <div className="space-y-3 animate-fade-in">
+                          <p className="text-gray-400 text-sm leading-relaxed">{product.description}</p>
+                          <ul className="space-y-1.5">
+                            {product.features.slice(0, 3).map((feature, i) => (
+                              <li key={i} className="flex items-center gap-2 text-xs text-gray-300">
+                                <span className="text-green-400">✓</span>
+                                {feature}
+                              </li>
+                            ))}
+                          </ul>
+                          <a
+                            href="https://slabs.lol"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block w-full text-center py-2.5 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 font-semibold text-sm hover:opacity-90 transition-opacity mt-4"
+                          >
+                            Select & Order
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Dot Indicators */}
+        <div className="flex justify-center gap-2 mt-6">
+          {products.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => onSelect(index)}
+              className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+                index === selectedIndex
+                  ? 'bg-purple-500 w-8'
+                  : 'bg-gray-600 hover:bg-gray-500'
+              }`}
+            />
+          ))}
+        </div>
+
+        {/* Bottom glow */}
+        <div
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2/3 h-32 pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse at center bottom, rgba(168,85,247,0.1) 0%, transparent 70%)',
+          }}
+        />
+      </div>
+    </div>
+  );
+}
 
 // Holographic Slab Preview Component
 function SlabPreview({ image }: { image: string }) {
@@ -132,7 +377,6 @@ function SlabPreview({ image }: { image: string }) {
             boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)',
           }}
         >
-          {/* Label */}
           <div
             className="mx-2 mt-2 h-[40px] rounded-lg flex items-center justify-center"
             style={{
@@ -142,15 +386,10 @@ function SlabPreview({ image }: { image: string }) {
           >
             <p className="text-white font-bold text-xs tracking-wider">SLAB AUTHENTICATED</p>
           </div>
-          {/* Card window */}
-          <div
-            className="mx-2 mt-2 rounded-lg overflow-hidden"
-            style={{ height: 'calc(100% - 56px)' }}
-          >
+          <div className="mx-2 mt-2 rounded-lg overflow-hidden" style={{ height: 'calc(100% - 56px)' }}>
             <img src={image} alt="NFT Slab" className="w-full h-full object-cover" />
           </div>
         </div>
-        {/* Edge highlight */}
         <div
           className="absolute top-0 left-4 right-4 h-[1px]"
           style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)' }}
@@ -161,7 +400,7 @@ function SlabPreview({ image }: { image: string }) {
 }
 
 export default function SlabsPage() {
-  const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white">
@@ -192,11 +431,10 @@ export default function SlabsPage() {
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">
-        {/* Background gradient */}
         <div className="absolute inset-0 bg-gradient-to-b from-purple-900/20 to-transparent" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-purple-500/10 blur-[100px]" />
 
-        <div className="max-w-7xl mx-auto px-4 py-24 relative">
+        <div className="max-w-7xl mx-auto px-4 py-20 relative">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <div className="inline-block px-3 py-1 rounded-full bg-purple-500/20 text-purple-400 text-sm mb-4">
@@ -241,78 +479,10 @@ export default function SlabsPage() {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="border-y border-[#374151] bg-[#111827]/50">
-        <div className="max-w-7xl mx-auto px-4 py-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            <div>
-              <div className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">3+</div>
-              <div className="text-gray-400 text-sm mt-1">Blockchains Supported</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">10+</div>
-              <div className="text-gray-400 text-sm mt-1">Wallet Integrations</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">100%</div>
-              <div className="text-gray-400 text-sm mt-1">Authenticated</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">Worldwide</div>
-              <div className="text-gray-400 text-sm mt-1">Shipping Available</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Products Section */}
-      <section id="products" className="py-24">
+      {/* Jukebox Product Selector */}
+      <section id="products" className="py-16 md:py-24" style={{ perspective: '1200px' }}>
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Choose Your Slab</h2>
-            <p className="text-gray-400 max-w-2xl mx-auto">
-              From premium custody slabs to replica keychains, we have the perfect option for every collector.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {products.map((product) => (
-              <div
-                key={product.id}
-                className={`relative bg-[#1f2937] rounded-xl p-6 border transition-all cursor-pointer ${
-                  selectedProduct === product.id
-                    ? 'border-purple-500 shadow-lg shadow-purple-500/20'
-                    : 'border-[#374151] hover:border-[#4b5563]'
-                }`}
-                onClick={() => setSelectedProduct(product.id)}
-              >
-                <div className={`absolute top-4 right-4 px-2 py-1 rounded text-xs font-bold ${product.badgeColor}`}>
-                  {product.badge}
-                </div>
-                <h3 className="text-xl font-bold mb-2">{product.name}</h3>
-                <div className="text-3xl font-bold text-purple-400 mb-4">
-                  ${product.price.toFixed(2)}
-                  <span className="text-sm text-gray-500 font-normal ml-1">USD</span>
-                </div>
-                <p className="text-gray-400 text-sm mb-4">{product.description}</p>
-                <ul className="space-y-2 mb-6">
-                  {product.features.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm text-gray-300">
-                      <span className="text-green-400">✓</span>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <a
-                  href="https://slabs.lol"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full text-center py-3 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 font-semibold hover:opacity-90 transition-opacity"
-                >
-                  Select & Slab
-                </a>
-              </div>
-            ))}
-          </div>
+          <JukeboxSelector selectedIndex={selectedIndex} onSelect={setSelectedIndex} />
         </div>
       </section>
 
@@ -351,18 +521,12 @@ export default function SlabsPage() {
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             {chains.map((chain, i) => (
-              <div
-                key={i}
-                className="bg-[#1f2937] rounded-xl p-8 border border-[#374151] text-center"
-              >
+              <div key={i} className="bg-[#1f2937] rounded-xl p-8 border border-[#374151] text-center">
                 <div className={`text-5xl mb-4 ${chain.color}`}>{chain.icon}</div>
                 <h3 className="text-xl font-bold mb-4">{chain.name}</h3>
                 <div className="flex flex-wrap justify-center gap-2">
                   {chain.wallets.map((wallet, j) => (
-                    <span
-                      key={j}
-                      className="px-3 py-1 rounded-full bg-[#374151] text-sm text-gray-300"
-                    >
+                    <span key={j} className="px-3 py-1 rounded-full bg-[#374151] text-sm text-gray-300">
                       {wallet}
                     </span>
                   ))}

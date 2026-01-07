@@ -9,6 +9,11 @@ const nextConfig = {
     ],
   },
   experimental: {
+    // Exclude browser-only packages from server-side bundling
+    serverComponentsExternalPackages: [
+      '@imgly/background-removal',
+      'onnxruntime-web',
+    ],
     serverActions: {
       allowedOrigins: ['localhost:3000', 'flaunt.lol'],
     },
@@ -21,10 +26,30 @@ const nextConfig = {
         'node_modules/@reown/**',
         'node_modules/@trezor/**',
         'node_modules/@walletconnect/**',
+        'node_modules/@imgly/**',
+        'node_modules/onnxruntime-web/**',
       ],
     },
     // Allow useSearchParams without Suspense boundary (legacy behavior)
     missingSuspenseWithCSRBailout: false,
+  },
+  webpack: (config, { isServer }) => {
+    // Exclude ONNX runtime .mjs files from being processed by Terser
+    if (!isServer) {
+      config.module.rules.push({
+        test: /\.mjs$/,
+        include: /node_modules\/(onnxruntime-web|@imgly)/,
+        type: 'javascript/auto',
+      });
+    }
+
+    // Don't try to bundle onnxruntime-web on the server
+    if (isServer) {
+      config.externals = config.externals || [];
+      config.externals.push('@imgly/background-removal', 'onnxruntime-web');
+    }
+
+    return config;
   },
   async headers() {
     return [

@@ -1,8 +1,7 @@
 // lib/remove-background.ts
 // Client-side background removal using @imgly/background-removal
 // Runs entirely in the browser - no server-side processing
-
-import { removeBackground as imglyRemoveBackground } from '@imgly/background-removal';
+// Uses dynamic import to avoid SSR bundling issues with ONNX runtime
 
 export interface RemoveBackgroundResult {
   success: boolean;
@@ -23,6 +22,9 @@ export async function removeBackground(
   onProgress?: (progress: number) => void
 ): Promise<RemoveBackgroundResult> {
   try {
+    // Dynamic import to avoid SSR bundling issues with ONNX runtime
+    const { removeBackground: imglyRemoveBackground } = await import('@imgly/background-removal');
+
     const blob = await imglyRemoveBackground(file, {
       model: 'isnet_quint8', // Quantized model - good balance of speed and quality
       output: {

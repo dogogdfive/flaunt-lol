@@ -12,10 +12,30 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '20');
     const featured = searchParams.get('featured') === 'true';
+    const city = searchParams.get('city');
+    const state = searchParams.get('state');
+    const localOnly = searchParams.get('localOnly') === 'true';
 
     const where: any = {
       status: 'APPROVED',
     };
+
+    // Filter stores that have location enabled
+    if (localOnly) {
+      where.showLocation = true;
+    }
+
+    // Filter by city (only stores with showLocation enabled)
+    if (city) {
+      where.showLocation = true;
+      where.businessCity = { equals: city, mode: 'insensitive' };
+    }
+
+    // Filter by state (only stores with showLocation enabled)
+    if (state) {
+      where.showLocation = true;
+      where.businessState = { equals: state, mode: 'insensitive' };
+    }
 
     // Get approved stores with their banners
     const stores = await prisma.store.findMany({
@@ -31,6 +51,9 @@ export async function GET(request: NextRequest) {
         totalSales: true,
         totalOrders: true,
         createdAt: true,
+        showLocation: true,
+        businessCity: true,
+        businessState: true,
         _count: {
           select: {
             products: true,
@@ -55,6 +78,11 @@ export async function GET(request: NextRequest) {
         totalOrders: store.totalOrders,
         productCount: store._count.products,
         createdAt: store.createdAt,
+        // Only expose location if store opted in
+        ...(store.showLocation && {
+          city: store.businessCity,
+          state: store.businessState,
+        }),
       })),
     });
 

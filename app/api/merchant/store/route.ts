@@ -61,6 +61,9 @@ export async function GET(request: NextRequest) {
         businessState: store.businessState,
         businessZip: store.businessZip,
         businessCountry: store.businessCountry,
+        showLocation: store.showLocation,
+        latitude: store.latitude,
+        longitude: store.longitude,
         totalSales: Number(store.totalSales),
         totalOrders: store.totalOrders,
         productCount: store._count.products,
@@ -105,6 +108,7 @@ export async function PATCH(request: NextRequest) {
       businessState,
       businessZip,
       businessCountry,
+      showLocation,
     } = body;
 
     // Get merchant's store
@@ -152,6 +156,7 @@ export async function PATCH(request: NextRequest) {
     if (businessState !== undefined) updateData.businessState = businessState;
     if (businessZip !== undefined) updateData.businessZip = businessZip;
     if (businessCountry !== undefined) updateData.businessCountry = businessCountry;
+    if (showLocation !== undefined) updateData.showLocation = showLocation;
 
     // Update the store
     const updatedStore = await prisma.store.update({

@@ -63,6 +63,8 @@ export async function POST(request: NextRequest) {
       weightGrams,
       bondingEnabled,
       bondingGoal,
+      allowsShipping = true,
+      allowsLocalPickup = false,
       submitForReview, // true = PENDING, false = DRAFT
     } = body;
 
@@ -111,6 +113,20 @@ export async function POST(request: NextRequest) {
       counter++;
     }
 
+    // Handle category - can be ID, slug, or null
+    let categoryId = null;
+    if (category) {
+      const foundCategory = await prisma.category.findFirst({
+        where: {
+          OR: [
+            { id: category },
+            { slug: category.toLowerCase() },
+          ],
+        },
+      });
+      categoryId = foundCategory?.id || null;
+    }
+
     // Create the product
     const product = await prisma.product.create({
       data: {
@@ -122,8 +138,11 @@ export async function POST(request: NextRequest) {
         priceUsdc: priceUsdc || null,
         images: images || [],
         quantity: quantity || 0,
+        categoryId,
         bondingEnabled: bondingEnabled || false,
         bondingGoal: bondingGoal || 100,
+        allowsShipping,
+        allowsLocalPickup,
         // Set status based on whether submitting for review
         status: submitForReview ? 'PENDING' : 'DRAFT',
       },

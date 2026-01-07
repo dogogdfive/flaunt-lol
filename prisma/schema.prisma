@@ -93,6 +93,9 @@ model Store {
   businessState    String?           @map("business_state")
   businessZip      String?           @map("business_zip")
   businessCountry  String?           @default("US") @map("business_country")
+  latitude         Float?            @map("latitude")
+  longitude        Float?            @map("longitude")
+  showLocation     Boolean           @default(false) @map("show_location")
   collections      Collection[]
   messages         Message[]
   orders           Order[]
@@ -186,6 +189,8 @@ model Product {
   metaDescription String?             @map("meta_description")
   avgRating       Float?              @map("avg_rating")
   reviewCount     Int                 @default(0) @map("review_count")
+  allowsShipping    Boolean             @default(true) @map("allows_shipping")
+  allowsLocalPickup Boolean             @default(false) @map("allows_local_pickup")
   createdAt       DateTime            @default(now()) @map("created_at")
   updatedAt       DateTime            @updatedAt @map("updated_at")
   cartItems       CartItem[]
@@ -267,6 +272,8 @@ model Order {
   paymentTx         String?         @map("payment_tx")
   paymentReference  String?         @unique @map("payment_reference")
   shippingAddress   Json?           @map("shipping_address")
+  fulfillmentType   FulfillmentType @default(SHIPPING) @map("fulfillment_type")
+  pickupNotes       String?         @map("pickup_notes")
   trackingNumber    String?         @map("tracking_number")
   carrier           String?
   trackingUrl       String?         @map("tracking_url")
@@ -372,6 +379,8 @@ model Message {
   subject     String?
   content     String
   readAt      DateTime? @map("read_at")
+  orderId     String?   @map("order_id")
+  productId   String?   @map("product_id")
   createdAt   DateTime  @default(now()) @map("created_at")
   sender      User      @relation("MessagesSent", fields: [senderId], references: [id], onDelete: Cascade)
   receiver    User      @relation("MessagesReceived", fields: [receiverId], references: [id], onDelete: Cascade)
@@ -467,6 +476,11 @@ enum PaymentStatus {
 enum PaymentCurrency {
   SOL
   USDC
+}
+
+enum FulfillmentType {
+  SHIPPING
+  LOCAL_PICKUP
 }
 
 enum PayoutStatus {

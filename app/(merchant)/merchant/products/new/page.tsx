@@ -36,6 +36,11 @@ export default function NewProductPage() {
   const [category, setCategory] = useState('');
   const [bondingEnabled, setBondingEnabled] = useState(false);
   const [bondingGoal, setBondingGoal] = useState('100');
+  const [allowsShipping, setAllowsShipping] = useState(true);
+  const [allowsLocalPickup, setAllowsLocalPickup] = useState(false);
+
+  // Categories from API
+  const [categories, setCategories] = useState<Array<{ id: string; name: string; slug: string }>>([]);
 
   // Live SOL price
   const [solPrice, setSolPrice] = useState<number>(200); // Default fallback
@@ -60,6 +65,22 @@ export default function NewProductPage() {
     // Refresh price every 60 seconds
     const interval = setInterval(fetchSolPrice, 60000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Fetch categories
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const res = await fetch('/api/categories');
+        const data = await res.json();
+        if (data.success && data.categories) {
+          setCategories(data.categories);
+        }
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+      }
+    }
+    fetchCategories();
   }, []);
 
   const estimatedSolPrice = priceUsdc ? (parseFloat(priceUsdc) / solPrice).toFixed(4) : '0';
@@ -172,6 +193,9 @@ export default function NewProductPage() {
       if (images.length === 0) {
         throw new Error('At least one image is required');
       }
+      if (!allowsShipping && !allowsLocalPickup) {
+        throw new Error('At least one fulfillment option must be selected');
+      }
 
       // First, get the merchant's store
       const storeRes = await fetch('/api/merchant/store', {
@@ -211,6 +235,8 @@ export default function NewProductPage() {
           quantity: parseInt(quantity) || 0,
           bondingEnabled,
           bondingGoal: parseInt(bondingGoal) || 100,
+          allowsShipping,
+          allowsLocalPickup,
           submitForReview,
         }),
         credentials: 'include',
@@ -350,13 +376,58 @@ export default function NewProductPage() {
               className="w-full px-4 py-2.5 bg-[#1f2937] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
             >
               <option value="">Select a category</option>
-              <option value="clothing">Clothing</option>
-              <option value="accessories">Accessories</option>
-              <option value="collectibles">Collectibles</option>
-              <option value="art">Art</option>
-              <option value="digital">Digital</option>
-              <option value="other">Other</option>
+              {categories.length > 0 ? (
+                categories.map((cat) => (
+                  <option key={cat.id} value={cat.slug}>{cat.name}</option>
+                ))
+              ) : (
+                <>
+                  <option value="clothing">Clothing</option>
+                  <option value="accessories">Accessories</option>
+                  <option value="collectibles">Collectibles</option>
+                  <option value="art">Art</option>
+                  <option value="animals">Animals/Pets</option>
+                  <option value="digital">Digital</option>
+                  <option value="other">Other</option>
+                </>
+              )}
             </select>
+          </div>
+
+          {/* Fulfillment Options */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Fulfillment Options
+            </label>
+            <div className="space-y-3 bg-[#1f2937] rounded-lg p-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={allowsShipping}
+                  onChange={(e) => setAllowsShipping(e.target.checked)}
+                  className="w-5 h-5 rounded border-gray-600 bg-[#111827] text-blue-500 focus:ring-blue-500"
+                />
+                <div>
+                  <span className="text-sm font-medium text-white">Ship to buyer</span>
+                  <p className="text-xs text-gray-400">Ship this product via standard carriers</p>
+                </div>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={allowsLocalPickup}
+                  onChange={(e) => setAllowsLocalPickup(e.target.checked)}
+                  className="w-5 h-5 rounded border-gray-600 bg-[#111827] text-blue-500 focus:ring-blue-500"
+                />
+                <div>
+                  <span className="text-sm font-medium text-white">Local pickup available</span>
+                  <p className="text-xs text-gray-400">Buyer can pick up from your location</p>
+                </div>
+              </label>
+              {!allowsShipping && !allowsLocalPickup && (
+                <p className="text-xs text-red-400">At least one fulfillment option must be selected</p>
+              )}
+            </div>
           </div>
 
           {/* Images */}

@@ -34,18 +34,24 @@ export async function POST(request: NextRequest) {
     const {
       shippingAddress,
       email,
-      currency = 'USDC'
+      currency = 'USDC',
+      fulfillmentType = 'SHIPPING',
+      pickupNotes,
     } = body;
 
-    // Validate shipping address
-    if (!shippingAddress || !shippingAddress.name || !shippingAddress.line1 || 
-        !shippingAddress.city || !shippingAddress.state || 
-        !shippingAddress.postalCode || !shippingAddress.country) {
-      return NextResponse.json(
-        { error: 'Complete shipping address is required' },
-        { status: 400 }
-      );
+    // Validate based on fulfillment type
+    if (fulfillmentType === 'SHIPPING') {
+      // Shipping requires full address
+      if (!shippingAddress || !shippingAddress.name || !shippingAddress.line1 ||
+          !shippingAddress.city || !shippingAddress.state ||
+          !shippingAddress.postalCode || !shippingAddress.country) {
+        return NextResponse.json(
+          { error: 'Complete shipping address is required' },
+          { status: 400 }
+        );
+      }
     }
+    // For LOCAL_PICKUP, shipping address is optional
 
     // Email is optional - buyer is warned that orders are non-refundable
     // and they won't receive tracking without email
@@ -138,10 +144,12 @@ export async function POST(request: NextRequest) {
           subtotal,
           platformFee,
           merchantAmount,
-          shippingAddress: {
+          fulfillmentType: fulfillmentType as 'SHIPPING' | 'LOCAL_PICKUP',
+          pickupNotes: fulfillmentType === 'LOCAL_PICKUP' ? pickupNotes : null,
+          shippingAddress: fulfillmentType === 'SHIPPING' ? {
             ...shippingAddress,
             email,
-          },
+          } : null,
           customerEmail: email,
           items: {
             create: orderItems,

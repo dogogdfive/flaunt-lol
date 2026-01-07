@@ -54,6 +54,8 @@ export async function GET(request: NextRequest) {
           priceUsdc: item.product.priceUsdc ? Number(item.product.priceUsdc) : null,
           images: item.product.images,
           quantity: item.product.quantity, // Stock available
+          allowsShipping: item.product.allowsShipping,
+          allowsLocalPickup: item.product.allowsLocalPickup,
           store: item.product.store,
         },
         variant: item.variant ? {

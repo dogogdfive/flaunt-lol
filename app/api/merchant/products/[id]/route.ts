@@ -62,6 +62,8 @@ export async function GET(
         bondingGoal: product.bondingGoal,
         bondingCurrent: product.bondingCurrent,
         totalSold: product.totalSold,
+        allowsShipping: product.allowsShipping,
+        allowsLocalPickup: product.allowsLocalPickup,
         rejectionReason: product.rejectionReason,
         createdAt: product.createdAt,
         updatedAt: product.updatedAt,
@@ -98,6 +100,8 @@ export async function PATCH(
       quantity,
       bondingEnabled,
       bondingGoal,
+      allowsShipping,
+      allowsLocalPickup,
       submitForReview,
     } = body;
 
@@ -179,6 +183,8 @@ export async function PATCH(
     if (quantity !== undefined) updateData.quantity = quantity;
     if (bondingEnabled !== undefined) updateData.bondingEnabled = bondingEnabled;
     if (bondingGoal !== undefined) updateData.bondingGoal = bondingGoal;
+    if (allowsShipping !== undefined) updateData.allowsShipping = allowsShipping;
+    if (allowsLocalPickup !== undefined) updateData.allowsLocalPickup = allowsLocalPickup;
 
     // Handle status change
     if (submitForReview) {

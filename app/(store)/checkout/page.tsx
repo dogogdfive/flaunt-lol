@@ -63,6 +63,8 @@ interface CartItem {
     priceUsdc: number | null;
     images: string[];
     quantity: number;
+    allowsShipping: boolean;
+    allowsLocalPickup: boolean;
     store: {
       id: string;
       name: string;
@@ -79,7 +81,8 @@ interface CartItem {
   itemTotalUsdc: number;
 }
 
-type CheckoutStep = 'cart' | 'shipping' | 'payment' | 'success';
+type CheckoutStep = 'cart' | 'fulfillment' | 'shipping' | 'payment' | 'success';
+type FulfillmentType = 'SHIPPING' | 'LOCAL_PICKUP';
 
 export default function CheckoutPage() {
   const [mounted, setMounted] = useState(false);
@@ -110,6 +113,15 @@ export default function CheckoutPage() {
 
   // Payment method: 'connected' for connected wallet, 'external' for another wallet
   const [paymentMethod, setPaymentMethod] = useState<'connected' | 'external'>('connected');
+
+  // Fulfillment type
+  const [fulfillmentType, setFulfillmentType] = useState<FulfillmentType>('SHIPPING');
+  const [pickupNotes, setPickupNotes] = useState('');
+
+  // Check if any items support local pickup
+  const hasPickupOption = cartItems.some(item => item.product.allowsLocalPickup);
+  // Check if all items support local pickup (required for pickup to be available)
+  const allSupportPickup = cartItems.length > 0 && cartItems.every(item => item.product.allowsLocalPickup);
 
   // External payment state
   const [pendingOrder, setPendingOrder] = useState<any>(null);
@@ -316,7 +328,7 @@ export default function CheckoutPage() {
         },
         credentials: 'include',
         body: JSON.stringify({
-          shippingAddress: {
+          shippingAddress: fulfillmentType === 'SHIPPING' ? {
             name: shippingForm.name,
             line1: shippingForm.line1,
             line2: shippingForm.line2 || undefined,
@@ -325,9 +337,11 @@ export default function CheckoutPage() {
             postalCode: shippingForm.postalCode,
             country: shippingForm.country,
             phone: shippingForm.phone || undefined,
-          },
+          } : undefined,
           email: shippingForm.email,
           currency: paymentCurrency,
+          fulfillmentType,
+          pickupNotes: fulfillmentType === 'LOCAL_PICKUP' ? pickupNotes : undefined,
         }),
       });
 
@@ -809,6 +823,109 @@ export default function CheckoutPage() {
               </div>
             )}
 
+            {/* Fulfillment Selection Step */}
+            {step === 'fulfillment' && (
+              <div className="bg-[#111827] border border-gray-800 rounded-xl">
+                <div className="px-6 py-4 border-b border-gray-800">
+                  <h2 className="text-lg font-semibold text-white">Delivery Method</h2>
+                </div>
+                <div className="p-6 space-y-4">
+                  <p className="text-gray-400 text-sm mb-4">
+                    All items in your cart support local pickup. How would you like to receive your order?
+                  </p>
+
+                  <div className="grid gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setFulfillmentType('SHIPPING')}
+                      className={`p-4 rounded-xl border text-left transition-all ${
+                        fulfillmentType === 'SHIPPING'
+                          ? 'border-blue-500/50 bg-blue-900/20'
+                          : 'border-gray-700 bg-[#1f2937] hover:border-gray-600'
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <Truck className="w-8 h-8 text-blue-400" />
+                        <div>
+                          <div className="font-medium text-white">Ship to me</div>
+                          <div className="text-sm text-gray-400">Receive your order via shipping carrier</div>
+                        </div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setFulfillmentType('LOCAL_PICKUP')}
+                      className={`p-4 rounded-xl border text-left transition-all ${
+                        fulfillmentType === 'LOCAL_PICKUP'
+                          ? 'border-green-500/50 bg-green-900/20'
+                          : 'border-gray-700 bg-[#1f2937] hover:border-gray-600'
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                          <span className="text-green-400 text-lg">📍</span>
+                        </div>
+                        <div>
+                          <div className="font-medium text-white">Local pickup</div>
+                          <div className="text-sm text-gray-400">Pick up from the seller directly</div>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+
+                  {fulfillmentType === 'LOCAL_PICKUP' && (
+                    <div className="mt-4 space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Your Email (for order confirmation)
+                        </label>
+                        <input
+                          type="email"
+                          value={shippingForm.email}
+                          onChange={(e) => setShippingForm({ ...shippingForm, email: e.target.value })}
+                          placeholder="your@email.com"
+                          className="w-full px-4 py-3 bg-[#1f2937] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-green-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Message for Seller (optional)
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={pickupNotes}
+                          onChange={(e) => setPickupNotes(e.target.value)}
+                          placeholder="Let the seller know your availability or preferred meeting location..."
+                          className="w-full px-4 py-3 bg-[#1f2937] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-green-500 resize-none"
+                        />
+                      </div>
+                      <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                        <p className="text-xs text-green-400">
+                          After payment, you'll be able to message the seller to coordinate pickup details.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 mt-6">
+                    <button
+                      onClick={() => setStep('cart')}
+                      className="px-6 py-3 text-gray-300 hover:text-white"
+                    >
+                      ← Back
+                    </button>
+                    <button
+                      onClick={() => fulfillmentType === 'LOCAL_PICKUP' ? setStep('payment') : setStep('shipping')}
+                      className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors"
+                    >
+                      {fulfillmentType === 'LOCAL_PICKUP' ? 'Continue to Payment' : 'Continue to Shipping'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Shipping Step */}
             {step === 'shipping' && (
               <div className="bg-[#111827] border border-gray-800 rounded-xl">
@@ -947,20 +1064,45 @@ export default function CheckoutPage() {
                   )}
 
                   <div className="bg-[#1f2937] rounded-xl p-6 mb-6">
-                    <h3 className="text-white font-medium mb-4">Ship to:</h3>
-                    <p className="text-gray-400">
-                      {shippingForm.name}<br />
-                      {shippingForm.line1}<br />
-                      {shippingForm.line2 && <>{shippingForm.line2}<br /></>}
-                      {shippingForm.city}, {shippingForm.state} {shippingForm.postalCode}<br />
-                      {shippingForm.country}
-                    </p>
-                    <button
-                      onClick={() => setStep('shipping')}
-                      className="text-blue-400 text-sm mt-2 hover:underline"
-                    >
-                      Edit address
-                    </button>
+                    {fulfillmentType === 'SHIPPING' ? (
+                      <>
+                        <h3 className="text-white font-medium mb-4">Ship to:</h3>
+                        <p className="text-gray-400">
+                          {shippingForm.name}<br />
+                          {shippingForm.line1}<br />
+                          {shippingForm.line2 && <>{shippingForm.line2}<br /></>}
+                          {shippingForm.city}, {shippingForm.state} {shippingForm.postalCode}<br />
+                          {shippingForm.country}
+                        </p>
+                        <button
+                          onClick={() => setStep('shipping')}
+                          className="text-blue-400 text-sm mt-2 hover:underline"
+                        >
+                          Edit address
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <h3 className="text-white font-medium mb-4 flex items-center gap-2">
+                          <span className="text-green-400">📍</span> Local Pickup
+                        </h3>
+                        <p className="text-gray-400">
+                          You'll coordinate pickup details with the seller after payment.
+                        </p>
+                        {pickupNotes && (
+                          <div className="mt-3 p-3 bg-[#111827] rounded-lg">
+                            <p className="text-xs text-gray-500 mb-1">Your message to seller:</p>
+                            <p className="text-sm text-gray-300">{pickupNotes}</p>
+                          </div>
+                        )}
+                        <button
+                          onClick={() => setStep('fulfillment')}
+                          className="text-green-400 text-sm mt-2 hover:underline"
+                        >
+                          Change delivery method
+                        </button>
+                      </>
+                    )}
                   </div>
 
                   {/* Payment Currency Toggle */}
@@ -1371,10 +1513,19 @@ export default function CheckoutPage() {
 
                 {step === 'cart' && (
                   <button
-                    onClick={() => setStep('shipping')}
+                    onClick={() => setStep(allSupportPickup ? 'fulfillment' : 'shipping')}
                     className="w-full mt-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors"
                   >
-                    Continue to Shipping
+                    Continue to Checkout
+                  </button>
+                )}
+
+                {step === 'fulfillment' && (
+                  <button
+                    onClick={() => fulfillmentType === 'LOCAL_PICKUP' ? setStep('payment') : setStep('shipping')}
+                    className="w-full mt-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors"
+                  >
+                    {fulfillmentType === 'LOCAL_PICKUP' ? 'Continue to Payment' : 'Continue to Shipping'}
                   </button>
                 )}
 

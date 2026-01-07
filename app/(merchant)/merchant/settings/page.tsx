@@ -36,6 +36,7 @@ interface StoreData {
   businessState: string | null;
   businessZip: string | null;
   businessCountry: string | null;
+  showLocation: boolean;
   status: string;
 }
 
@@ -71,6 +72,7 @@ export default function MerchantSettings() {
   const [businessState, setBusinessState] = useState('');
   const [businessZip, setBusinessZip] = useState('');
   const [businessCountry, setBusinessCountry] = useState('US');
+  const [showLocation, setShowLocation] = useState(false);
 
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
@@ -110,6 +112,7 @@ export default function MerchantSettings() {
           setBusinessState(data.store.businessState || '');
           setBusinessZip(data.store.businessZip || '');
           setBusinessCountry(data.store.businessCountry || 'US');
+          setShowLocation(data.store.showLocation || false);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load store');
@@ -204,6 +207,7 @@ export default function MerchantSettings() {
           businessState: businessState || null,
           businessZip: businessZip || null,
           businessCountry: businessCountry || 'US',
+          showLocation,
         }),
       });
 
@@ -548,10 +552,28 @@ export default function MerchantSettings() {
           {(!contactEmail || !contactPhone || !businessAddress || !businessCity || !businessState || !businessZip) && (
             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
               <p className="text-sm text-yellow-300">
-                ⚠️ Complete all required fields to purchase shipping labels
+                Complete all required fields to purchase shipping labels
               </p>
             </div>
           )}
+
+          {/* Show Location Toggle for Local Sales */}
+          <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 mt-4">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showLocation}
+                onChange={(e) => setShowLocation(e.target.checked)}
+                className="w-5 h-5 mt-0.5 rounded border-gray-600 bg-[#111827] text-green-500 focus:ring-green-500"
+              />
+              <div>
+                <span className="text-sm font-medium text-white">Show my location to buyers</span>
+                <p className="text-xs text-gray-400 mt-1">
+                  Allow buyers to find you by city/state for local pickup. Only your city and state will be shown (not your full address).
+                </p>
+              </div>
+            </label>
+          </div>
         </div>
       </div>
 

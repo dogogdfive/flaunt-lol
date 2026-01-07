@@ -14,10 +14,16 @@ export async function GET(request: NextRequest) {
     // Query parameters
     const storeSlug = searchParams.get('store');
     const category = searchParams.get('category');
+    const categorySlug = searchParams.get('categorySlug');
     const sort = searchParams.get('sort') || 'newest';
     const limit = parseInt(searchParams.get('limit') || '20');
     const page = parseInt(searchParams.get('page') || '1');
     const search = searchParams.get('search');
+
+    // Local/pickup filters
+    const pickupOnly = searchParams.get('pickupOnly') === 'true';
+    const city = searchParams.get('city');
+    const state = searchParams.get('state');
 
     // Build where clause - ONLY APPROVED PRODUCTS
     const where: any = {
@@ -33,6 +39,32 @@ export async function GET(request: NextRequest) {
 
     if (category) {
       where.category = category;
+    }
+
+    // Filter by category slug
+    if (categorySlug) {
+      where.category = { slug: categorySlug };
+    }
+
+    // Filter for local pickup products only
+    if (pickupOnly) {
+      where.allowsLocalPickup = true;
+    }
+
+    // Filter by store location (city/state)
+    if (city) {
+      where.store = {
+        ...where.store,
+        showLocation: true,
+        businessCity: { equals: city, mode: 'insensitive' },
+      };
+    }
+    if (state) {
+      where.store = {
+        ...where.store,
+        showLocation: true,
+        businessState: { equals: state, mode: 'insensitive' },
+      };
     }
 
     // Search by name or description
@@ -78,6 +110,9 @@ export async function GET(request: NextRequest) {
             slug: true,
             logoUrl: true,
             isVerified: true,
+            showLocation: true,
+            businessCity: true,
+            businessState: true,
           },
         },
         category: {
@@ -133,7 +168,20 @@ export async function GET(request: NextRequest) {
           bondingEnabled: p.bondingEnabled,
           bondingGoal: p.bondingGoal,
           bondingCurrent: p.bondingCurrent,
-          store: p.store,
+          allowsShipping: p.allowsShipping,
+          allowsLocalPickup: p.allowsLocalPickup,
+          store: {
+            id: p.store.id,
+            name: p.store.name,
+            slug: p.store.slug,
+            logoUrl: p.store.logoUrl,
+            isVerified: p.store.isVerified,
+            // Only expose location if store opted in
+            ...(p.store.showLocation && {
+              city: p.store.businessCity,
+              state: p.store.businessState,
+            }),
+          },
           // Review data
           avgRating: avgRating ? Math.round(avgRating * 10) / 10 : null,
           reviewCount,

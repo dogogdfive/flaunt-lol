@@ -76,6 +76,8 @@ export async function GET(request: NextRequest) {
         carrier: order.carrier,
         labelUrl: order.labelUrl,
         merchantNotes: order.merchantNotes,
+        fulfillmentType: order.fulfillmentType,
+        pickupNotes: order.pickupNotes,
         shippingAddress: order.shippingAddress,
         customer: {
           name: order.customer.name || (order.shippingAddress as any)?.name || 'Anonymous',

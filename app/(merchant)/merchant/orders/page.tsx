@@ -46,6 +46,8 @@ interface Order {
   currency: string;
   status: string;
   paymentStatus: string;
+  fulfillmentType: 'SHIPPING' | 'LOCAL_PICKUP';
+  pickupNotes: string | null;
   trackingNumber: string | null;
   carrier: string | null;
   trackingUrl: string | null;
@@ -63,7 +65,7 @@ interface Order {
     state: string;
     postalCode: string;
     country: string;
-  };
+  } | null;
 }
 
 const statusConfig = {
@@ -543,60 +545,81 @@ export default function MerchantOrders() {
                 </div>
               )}
 
-              {/* Ship to address */}
-              <div className="bg-[#1f2937] rounded-lg p-4">
-                <div className="text-sm font-medium text-gray-300 mb-2">Ship to:</div>
-                <div className="text-sm text-gray-400">
-                  {selectedOrder.shippingAddress?.name}<br />
-                  {selectedOrder.shippingAddress?.line1}<br />
-                  {selectedOrder.shippingAddress?.line2 && <>{selectedOrder.shippingAddress.line2}<br /></>}
-                  {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state} {selectedOrder.shippingAddress?.postalCode}<br />
-                  {selectedOrder.shippingAddress?.country}
+              {/* Local Pickup or Shipping Address */}
+              {selectedOrder.fulfillmentType === 'LOCAL_PICKUP' ? (
+                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
+                  <div className="text-sm font-medium text-green-400 mb-2 flex items-center gap-2">
+                    <span>📍</span> Local Pickup Order
+                  </div>
+                  <p className="text-sm text-gray-400">
+                    Customer will pick up this order from you. Contact them via messages to coordinate.
+                  </p>
+                  {selectedOrder.pickupNotes && (
+                    <div className="mt-3 p-3 bg-[#111827] rounded-lg">
+                      <p className="text-xs text-gray-500 mb-1">Customer's message:</p>
+                      <p className="text-sm text-gray-300">{selectedOrder.pickupNotes}</p>
+                    </div>
+                  )}
                 </div>
-              </div>
-
-              {/* Tracking Section */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Tracking Number</label>
-                <input
-                  type="text"
-                  value={trackingNumber}
-                  onChange={(e) => setTrackingNumber(e.target.value)}
-                  placeholder="1Z999AA10123456784"
-                  className="w-full px-4 py-2.5 bg-[#1f2937] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Carrier</label>
-                <select
-                  value={selectedCarrier}
-                  onChange={(e) => setSelectedCarrier(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-[#1f2937] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
-                >
-                  {carriers.map((carrier) => (
-                    <option key={carrier.id} value={carrier.id}>{carrier.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {selectedCarrier === 'other' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Tracking URL</label>
-                  <input
-                    type="url"
-                    value={customTrackingUrl}
-                    onChange={(e) => setCustomTrackingUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full px-4 py-2.5 bg-[#1f2937] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
-                  />
+              ) : (
+                <div className="bg-[#1f2937] rounded-lg p-4">
+                  <div className="text-sm font-medium text-gray-300 mb-2">Ship to:</div>
+                  <div className="text-sm text-gray-400">
+                    {selectedOrder.shippingAddress?.name}<br />
+                    {selectedOrder.shippingAddress?.line1}<br />
+                    {selectedOrder.shippingAddress?.line2 && <>{selectedOrder.shippingAddress.line2}<br /></>}
+                    {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state} {selectedOrder.shippingAddress?.postalCode}<br />
+                    {selectedOrder.shippingAddress?.country}
+                  </div>
                 </div>
               )}
 
-              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
-                <p className="text-sm text-blue-300">
-                  Customer will be notified automatically when you add tracking
-                </p>
-              </div>
+              {/* Tracking Section - Only for shipping orders */}
+              {selectedOrder.fulfillmentType !== 'LOCAL_PICKUP' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Tracking Number</label>
+                    <input
+                      type="text"
+                      value={trackingNumber}
+                      onChange={(e) => setTrackingNumber(e.target.value)}
+                      placeholder="1Z999AA10123456784"
+                      className="w-full px-4 py-2.5 bg-[#1f2937] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Carrier</label>
+                    <select
+                      value={selectedCarrier}
+                      onChange={(e) => setSelectedCarrier(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-[#1f2937] border border-gray-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                    >
+                      {carriers.map((carrier) => (
+                        <option key={carrier.id} value={carrier.id}>{carrier.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {selectedCarrier === 'other' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Tracking URL</label>
+                      <input
+                        type="url"
+                        value={customTrackingUrl}
+                        onChange={(e) => setCustomTrackingUrl(e.target.value)}
+                        placeholder="https://..."
+                        className="w-full px-4 py-2.5 bg-[#1f2937] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  )}
+
+                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                    <p className="text-sm text-blue-300">
+                      Customer will be notified automatically when you add tracking
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-800 sticky bottom-0 bg-[#111827]">
               <button
@@ -608,13 +631,23 @@ export default function MerchantOrders() {
               >
                 Cancel
               </button>
-              <button
-                onClick={handleFulfillOrder}
-                disabled={fulfillLoading || !trackingNumber.trim()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
-              >
-                {fulfillLoading ? 'Saving...' : 'Add Tracking & Ship'}
-              </button>
+              {selectedOrder.fulfillmentType === 'LOCAL_PICKUP' ? (
+                <button
+                  onClick={handleFulfillOrder}
+                  disabled={fulfillLoading}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
+                >
+                  {fulfillLoading ? 'Saving...' : 'Mark as Ready for Pickup'}
+                </button>
+              ) : (
+                <button
+                  onClick={handleFulfillOrder}
+                  disabled={fulfillLoading || !trackingNumber.trim()}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors"
+                >
+                  {fulfillLoading ? 'Saving...' : 'Add Tracking & Ship'}
+                </button>
+              )}
             </div>
           </div>
         </div>

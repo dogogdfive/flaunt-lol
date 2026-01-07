@@ -55,7 +55,31 @@ async function main() {
   console.log('✅ Platform settings created');
 
   // ==========================================
-  // 3. CREATE SAMPLE DATA (Optional - for testing)
+  // 3. CREATE CATEGORIES
+  // ==========================================
+
+  const categories = [
+    { name: 'Clothing', slug: 'clothing', description: 'Apparel and fashion items', sortOrder: 1 },
+    { name: 'Accessories', slug: 'accessories', description: 'Fashion accessories and add-ons', sortOrder: 2 },
+    { name: 'Collectibles', slug: 'collectibles', description: 'Rare and collectible items', sortOrder: 3 },
+    { name: 'Art', slug: 'art', description: 'Artwork and creative pieces', sortOrder: 4 },
+    { name: 'Animals/Pets', slug: 'animals', description: 'Live animals, pets, and livestock', sortOrder: 5 },
+    { name: 'Digital', slug: 'digital', description: 'Digital goods and downloads', sortOrder: 6 },
+    { name: 'Other', slug: 'other', description: 'Miscellaneous items', sortOrder: 7 },
+  ];
+
+  for (const category of categories) {
+    await prisma.category.upsert({
+      where: { slug: category.slug },
+      update: { name: category.name, description: category.description, sortOrder: category.sortOrder },
+      create: { ...category, isActive: true },
+    });
+  }
+
+  console.log('✅ Categories created');
+
+  // ==========================================
+  // 4. CREATE SAMPLE DATA (Optional - for testing)
   // ==========================================
 
   // Uncomment below to create test data

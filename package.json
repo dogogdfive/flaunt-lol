@@ -10,11 +10,13 @@
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "migrate:backgrounds": "tsx scripts/migrate-product-backgrounds.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.958.0",
     "@aws-sdk/s3-request-presigner": "^3.958.0",
+    "@imgly/background-removal": "^1.7.0",
     "@prisma/client": "^5.7.0",
     "@sentry/nextjs": "^10.32.1",
     "@solana/pay": "^0.2.5",

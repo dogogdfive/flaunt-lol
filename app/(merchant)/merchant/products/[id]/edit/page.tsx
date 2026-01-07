@@ -14,7 +14,9 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle,
+  Sparkles,
 } from 'lucide-react';
+import { removeBackground, blobToFile } from '@/lib/remove-background';
 
 interface Product {
   id: string;
@@ -55,6 +57,8 @@ export default function EditProductPage() {
   // Image state
   const [images, setImages] = useState<string[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [processingBg, setProcessingBg] = useState(false);
+  const [bgProgress, setBgProgress] = useState(0);
 
   // Load product data
   useEffect(() => {
@@ -123,8 +127,26 @@ export default function EditProductPage() {
           continue;
         }
 
+        // Remove background before upload
+        setProcessingBg(true);
+        setBgProgress(0);
+
+        const bgResult = await removeBackground(file, (progress) => {
+          setBgProgress(Math.round(progress * 100));
+        });
+
+        setProcessingBg(false);
+
+        let fileToUpload: File;
+        if (bgResult.success && bgResult.blob) {
+          fileToUpload = blobToFile(bgResult.blob, file.name);
+        } else {
+          console.warn('Background removal failed, using original:', bgResult.error);
+          fileToUpload = file;
+        }
+
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('file', fileToUpload);
         formData.append('type', 'productImage');
 
         const response = await fetch('/api/upload', {
@@ -148,6 +170,7 @@ export default function EditProductPage() {
       setError(err instanceof Error ? err.message : 'Failed to upload image');
     } finally {
       setUploadingImage(false);
+      setProcessingBg(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -388,11 +411,20 @@ export default function EditProductPage() {
               {images.length < 10 && (
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadingImage}
+                  disabled={uploadingImage || processingBg}
                   className="aspect-square border-2 border-dashed border-gray-700 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-gray-600 hover:text-gray-400 transition-colors disabled:opacity-50"
                 >
-                  {uploadingImage ? (
-                    <Loader2 className="w-8 h-8 animate-spin" />
+                  {processingBg ? (
+                    <>
+                      <Sparkles className="w-8 h-8 mb-2 animate-pulse text-purple-400" />
+                      <span className="text-sm text-purple-400">Removing BG</span>
+                      <span className="text-xs text-purple-300">{bgProgress}%</span>
+                    </>
+                  ) : uploadingImage ? (
+                    <>
+                      <Loader2 className="w-8 h-8 animate-spin" />
+                      <span className="text-sm">Uploading</span>
+                    </>
                   ) : (
                     <>
                       <Upload className="w-8 h-8 mb-2" />
@@ -414,6 +446,7 @@ export default function EditProductPage() {
             
             <p className="text-xs text-gray-500">
               PNG, JPG up to 5MB each. Max 10 images.
+              <span className="text-purple-400"> Backgrounds are automatically removed.</span>
             </p>
           </div>
 

@@ -14,7 +14,9 @@ import {
   X,
   ExternalLink,
   Wallet,
+  Sparkles,
 } from 'lucide-react';
+import { removeBackground, blobToFile } from '@/lib/remove-background';
 
 interface StoreData {
   id: string;
@@ -76,6 +78,8 @@ export default function MerchantSettings() {
 
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [processingLogoBg, setProcessingLogoBg] = useState(false);
+  const [logoBgProgress, setLogoBgProgress] = useState(0);
 
   // Fetch store data
   useEffect(() => {
@@ -148,8 +152,29 @@ export default function MerchantSettings() {
         throw new Error('Image must be less than 5MB');
       }
 
+      let fileToUpload: File = file;
+
+      // Only apply background removal for logos (not banners)
+      if (type === 'logo') {
+        setProcessingLogoBg(true);
+        setLogoBgProgress(0);
+
+        const bgResult = await removeBackground(file, (progress) => {
+          setLogoBgProgress(Math.round(progress * 100));
+        });
+
+        setProcessingLogoBg(false);
+
+        if (bgResult.success && bgResult.blob) {
+          fileToUpload = blobToFile(bgResult.blob, file.name);
+        } else {
+          console.warn('Background removal failed, using original:', bgResult.error);
+          fileToUpload = file;
+        }
+      }
+
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', fileToUpload);
       formData.append('type', type === 'logo' ? 'storeLogo' : 'storeBanner');
       formData.append('walletAddress', publicKey.toBase58());
 
@@ -172,6 +197,9 @@ export default function MerchantSettings() {
       setError(err instanceof Error ? err.message : 'Failed to upload image');
     } finally {
       setUploading(false);
+      if (type === 'logo') {
+        setProcessingLogoBg(false);
+      }
     }
   };
 
@@ -343,9 +371,11 @@ export default function MerchantSettings() {
               Store Logo
             </label>
             <div className="flex items-center gap-4">
-              <div 
-                onClick={() => logoInputRef.current?.click()}
-                className="relative w-24 h-24 bg-[#1f2937] rounded-lg overflow-hidden cursor-pointer group"
+              <div
+                onClick={() => !processingLogoBg && !uploadingLogo && logoInputRef.current?.click()}
+                className={`relative w-24 h-24 bg-[#1f2937] rounded-lg overflow-hidden group ${
+                  processingLogoBg || uploadingLogo ? 'cursor-wait' : 'cursor-pointer'
+                }`}
               >
                 {logoUrl ? (
                   <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
@@ -354,8 +384,15 @@ export default function MerchantSettings() {
                     <Store className="w-8 h-8 text-gray-600" />
                   </div>
                 )}
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  {uploadingLogo ? (
+                <div className={`absolute inset-0 bg-black/50 flex flex-col items-center justify-center transition-opacity ${
+                  processingLogoBg || uploadingLogo ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                }`}>
+                  {processingLogoBg ? (
+                    <>
+                      <Sparkles className="w-6 h-6 text-purple-400 animate-pulse" />
+                      <span className="text-xs text-purple-300 mt-1">{logoBgProgress}%</span>
+                    </>
+                  ) : uploadingLogo ? (
                     <Loader2 className="w-6 h-6 text-white animate-spin" />
                   ) : (
                     <Upload className="w-6 h-6 text-white" />
@@ -365,6 +402,7 @@ export default function MerchantSettings() {
               <div className="text-sm text-gray-400">
                 <p>Recommended: 400x400px</p>
                 <p>Max size: 5MB</p>
+                <p className="text-purple-400 text-xs mt-1">Background auto-removed</p>
               </div>
             </div>
             <input

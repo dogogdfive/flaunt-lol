@@ -20,11 +20,10 @@ function ensureHttps(url: string): string {
   return `https://${url}`;
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+export async function generateMetadata({ params }: { params: { slug: string } }) {
   try {
-    const { slug } = await params;
     const store = await prisma.store.findUnique({
-      where: { slug, status: 'APPROVED' },
+      where: { slug: params.slug, status: 'APPROVED' },
     });
 
     if (!store) return { title: 'Store Not Found | flaunt.lol' };
@@ -54,10 +53,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 }
 
-export default async function StorePublicPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
+export default async function StorePublicPage({ params }: { params: { slug: string } }) {
   const store = await prisma.store.findUnique({
-    where: { slug, status: 'APPROVED' },
+    where: { slug: params.slug, status: 'APPROVED' },
     include: {
       products: {
         where: { status: 'APPROVED' },

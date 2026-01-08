@@ -8,10 +8,11 @@ import ProductClient from './ProductClient';
 
 export const dynamic = 'force-dynamic';
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   try {
+    const { slug } = await params;
     const product = await prisma.product.findFirst({
-      where: { slug: params.slug, status: 'APPROVED' },
+      where: { slug, status: 'APPROVED' },
       include: { store: true },
     });
 
@@ -47,15 +48,17 @@ export default async function ProductPage({
   params,
   searchParams
 }: {
-  params: { slug: string };
-  searchParams: { preview?: string };
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ preview?: string }>;
 }) {
-  const isPreviewMode = searchParams?.preview === 'true';
+  const { slug } = await params;
+  const resolvedSearchParams = await searchParams;
+  const isPreviewMode = resolvedSearchParams?.preview === 'true';
 
   const product = await prisma.product.findFirst({
     where: isPreviewMode
-      ? { slug: params.slug }
-      : { slug: params.slug, status: 'APPROVED' },
+      ? { slug }
+      : { slug, status: 'APPROVED' },
     include: {
       store: {
         select: { id: true, name: true, slug: true, logoUrl: true, isVerified: true, tradesEnabled: true, ownerId: true },

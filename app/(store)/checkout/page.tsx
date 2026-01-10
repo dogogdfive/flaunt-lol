@@ -111,8 +111,13 @@ export default function CheckoutPage() {
   const [copiedAmount, setCopiedAmount] = useState(false);
   const [copiedMemo, setCopiedMemo] = useState(false);
 
-  // Payment method: 'connected' for connected wallet, 'external' for another wallet
-  const [paymentMethod, setPaymentMethod] = useState<'connected' | 'external'>('connected');
+  // Payment method: 'connected' for connected wallet, 'external' for another wallet, 'moonpay' for MoonPay
+  const [paymentMethod, setPaymentMethod] = useState<'connected' | 'external' | 'moonpay'>('connected');
+  
+  // MoonPay payment type: 'solana', 'ethereum', 'usdt', 'debit_card'
+  const [moonpayPaymentType, setMoonpayPaymentType] = useState<'solana' | 'ethereum' | 'usdt' | 'debit_card'>('debit_card');
+  const [moonpayUrl, setMoonpayUrl] = useState<string | null>(null);
+  const [moonpayOrderId, setMoonpayOrderId] = useState<string | null>(null);
 
   // Fulfillment type
   const [fulfillmentType, setFulfillmentType] = useState<FulfillmentType>('SHIPPING');
@@ -169,7 +174,7 @@ export default function CheckoutPage() {
 
   const [orderResult, setOrderResult] = useState<any>(null);
 
-  // Payment currency
+  // Payment currency (for direct wallet payments)
   const [paymentCurrency, setPaymentCurrency] = useState<'SOL' | 'USDC'>('USDC');
   const [solPrice, setSolPrice] = useState<number>(200);
   const [priceLoading, setPriceLoading] = useState(true);
@@ -218,6 +223,49 @@ export default function CheckoutPage() {
       fetchCart();
     } else {
       setLoading(false);
+    }
+
+    // Check for MoonPay redirect
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('payment') === 'moonpay') {
+      const orderId = urlParams.get('orderId');
+      const status = urlParams.get('status');
+      
+      if (orderId && status === 'pending') {
+        setMoonpayOrderId(orderId);
+        setMoonpayUrl('pending');
+        setPaymentMethod('moonpay');
+        setStep('payment');
+        
+        // Poll for payment status
+        const checkPaymentStatus = async () => {
+          try {
+            const res = await fetch(`/api/orders/${orderId}`, {
+              credentials: 'include',
+            });
+            const data = await res.json();
+            if (data.order?.paymentStatus === 'COMPLETED') {
+              setOrderResult({ orders: [{ id: orderId, orderNumber: data.order.orderNumber }] });
+              setStep('success');
+              // Clean URL
+              window.history.replaceState({}, '', '/checkout');
+            }
+          } catch (error) {
+            console.error('Error checking payment status:', error);
+          }
+        };
+
+        // Check immediately and then every 3 seconds
+        checkPaymentStatus();
+        const interval = setInterval(checkPaymentStatus, 3000);
+        
+        // Stop polling after 2 minutes
+        setTimeout(() => clearInterval(interval), 120000);
+      } else if (orderId && status === 'completed') {
+        setStep('success');
+        // Clean URL
+        window.history.replaceState({}, '', '/checkout');
+      }
     }
   }, [mounted, connected, publicKey]);
 
@@ -603,6 +651,93 @@ export default function CheckoutPage() {
       setError(err instanceof Error ? err.message : 'Payment verification failed');
     } finally {
       setVerifyingPayment(false);
+    }
+  };
+
+  // Create order and MoonPay payment URL
+  const createMoonPayPayment = async () => {
+    setCheckoutLoading(true);
+    setError('');
+
+    try {
+      if (!publicKey) {
+        throw new Error('Please connect your wallet first');
+      }
+
+      // First create the order
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': publicKey.toBase58(),
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          shippingAddress: fulfillmentType === 'SHIPPING' ? {
+            name: shippingForm.name,
+            line1: shippingForm.line1,
+            line2: shippingForm.line2 || undefined,
+            city: shippingForm.city,
+            state: shippingForm.state,
+            postalCode: shippingForm.postalCode,
+            country: shippingForm.country,
+            phone: shippingForm.phone || undefined,
+          } : undefined,
+          email: shippingForm.email,
+          currency: 'USDC', // Base currency for MoonPay
+          fulfillmentType,
+          pickupNotes: fulfillmentType === 'LOCAL_PICKUP' ? pickupNotes : undefined,
+        }),
+      });
+
+      const orderData = await res.json();
+
+      if (!res.ok) {
+        throw new Error(orderData.error || 'Failed to create order');
+      }
+
+      const orderId = orderData.orders[0].id;
+      setMoonpayOrderId(orderId);
+
+      // Get platform wallet address (for crypto payments)
+      const platformWallet = process.env.NEXT_PUBLIC_PLATFORM_WALLET || DEFAULT_PLATFORM_WALLET;
+
+      // Create MoonPay payment URL
+      const moonpayRes = await fetch('/api/moonpay/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': publicKey.toBase58(),
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          orderId,
+          paymentMethod: moonpayPaymentType,
+          walletAddress: moonpayPaymentType !== 'debit_card' ? platformWallet : undefined,
+        }),
+      });
+
+      const moonpayData = await moonpayRes.json();
+
+      if (!moonpayRes.ok) {
+        throw new Error(moonpayData.error || 'Failed to create MoonPay payment');
+      }
+
+      // Store MoonPay URL and open in new window/iframe
+      setMoonpayUrl(moonpayData.url);
+      
+      // Open MoonPay widget in new window
+      window.open(moonpayData.url, 'moonpay', 'width=500,height=700,scrollbars=yes');
+      
+      // Also store widget config for potential embedded widget later
+      // For now, we'll use the redirect approach
+
+    } catch (err: any) {
+      console.error('MoonPay payment creation error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create MoonPay payment');
+      showError(err instanceof Error ? err.message : 'Failed to create MoonPay payment');
+    } finally {
+      setCheckoutLoading(false);
     }
   };
 
@@ -1155,45 +1290,126 @@ export default function CheckoutPage() {
                   {/* Payment Method Toggle */}
                   <div className="mb-6">
                     <h3 className="text-white font-medium mb-3">Payment Method</h3>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <button
                         type="button"
-                        onClick={() => { setPaymentMethod('connected'); setPendingOrder(null); setManualTxSignature(''); }}
-                        disabled={!!pendingOrder}
+                        onClick={() => { setPaymentMethod('connected'); setPendingOrder(null); setManualTxSignature(''); setMoonpayUrl(null); }}
+                        disabled={!!pendingOrder || !!moonpayUrl}
                         className={`p-4 rounded-xl border text-left transition-all ${
                           paymentMethod === 'connected'
                             ? 'border-pink-400/50 bg-pink-900/20'
                             : 'border-gray-700 bg-[#1f2937] hover:border-gray-600'
-                        } ${pendingOrder ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        } ${pendingOrder || moonpayUrl ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <div className="flex items-center gap-3">
                           <Wallet className="w-6 h-6 text-pink-300" />
                           <div>
-                            <div className="font-medium text-white">Connected Wallet</div>
-                            <div className="text-xs text-gray-400">One-click payment</div>
+                            <div className="font-medium text-white">Direct Wallet</div>
+                            <div className="text-xs text-gray-400">Solana only</div>
                           </div>
                         </div>
                       </button>
                       <button
                         type="button"
-                        onClick={() => { setPaymentMethod('external'); setPendingOrder(null); setManualTxSignature(''); }}
-                        disabled={!!pendingOrder}
+                        onClick={() => { setPaymentMethod('external'); setPendingOrder(null); setManualTxSignature(''); setMoonpayUrl(null); }}
+                        disabled={!!pendingOrder || !!moonpayUrl}
                         className={`p-4 rounded-xl border text-left transition-all ${
                           paymentMethod === 'external'
                             ? 'border-pink-400/50 bg-pink-900/20'
                             : 'border-gray-700 bg-[#1f2937] hover:border-gray-600'
-                        } ${pendingOrder ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        } ${pendingOrder || moonpayUrl ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <div className="flex items-center gap-3">
                           <ExternalLink className="w-6 h-6 text-pink-300" />
                           <div>
                             <div className="font-medium text-white">External Wallet</div>
-                            <div className="text-xs text-gray-400">Ledger, mobile, etc.</div>
+                            <div className="text-xs text-gray-400">Manual payment</div>
+                          </div>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setPaymentMethod('moonpay'); setPendingOrder(null); setManualTxSignature(''); setMoonpayUrl(null); }}
+                        disabled={!!pendingOrder || !!moonpayUrl}
+                        className={`p-4 rounded-xl border text-left transition-all ${
+                          paymentMethod === 'moonpay'
+                            ? 'border-blue-400/50 bg-blue-900/20'
+                            : 'border-gray-700 bg-[#1f2937] hover:border-gray-600'
+                        } ${pendingOrder || moonpayUrl ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <CreditCard className="w-6 h-6 text-blue-300" />
+                          <div>
+                            <div className="font-medium text-white">MoonPay</div>
+                            <div className="text-xs text-gray-400">Card or crypto</div>
                           </div>
                         </div>
                       </button>
                     </div>
                   </div>
+
+                  {/* MoonPay Payment Type Selector */}
+                  {paymentMethod === 'moonpay' && (
+                    <div className="mb-6">
+                      <h3 className="text-white font-medium mb-3">Payment Type</h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setMoonpayPaymentType('debit_card')}
+                          className={`p-3 rounded-xl border text-center transition-all ${
+                            moonpayPaymentType === 'debit_card'
+                              ? 'border-blue-500/50 bg-blue-900/20'
+                              : 'border-gray-700 bg-[#1f2937] hover:border-gray-600'
+                          }`}
+                        >
+                          <CreditCard className="w-5 h-5 mx-auto mb-1 text-blue-400" />
+                          <div className="text-xs font-medium text-white">Debit Card</div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setMoonpayPaymentType('solana')}
+                          className={`p-3 rounded-xl border text-center transition-all ${
+                            moonpayPaymentType === 'solana'
+                              ? 'border-purple-500/50 bg-purple-900/20'
+                              : 'border-gray-700 bg-[#1f2937] hover:border-gray-600'
+                          }`}
+                        >
+                          <div className="text-xl mb-1">◎</div>
+                          <div className="text-xs font-medium text-white">Solana</div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setMoonpayPaymentType('ethereum')}
+                          className={`p-3 rounded-xl border text-center transition-all ${
+                            moonpayPaymentType === 'ethereum'
+                              ? 'border-cyan-500/50 bg-cyan-900/20'
+                              : 'border-gray-700 bg-[#1f2937] hover:border-gray-600'
+                          }`}
+                        >
+                          <div className="text-xl mb-1">Ξ</div>
+                          <div className="text-xs font-medium text-white">Ethereum</div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setMoonpayPaymentType('usdt')}
+                          className={`p-3 rounded-xl border text-center transition-all ${
+                            moonpayPaymentType === 'usdt'
+                              ? 'border-green-500/50 bg-green-900/20'
+                              : 'border-gray-700 bg-[#1f2937] hover:border-gray-600'
+                          }`}
+                        >
+                          <div className="text-xs font-medium text-white mb-1">$</div>
+                          <div className="text-xs font-medium text-white">USDT</div>
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-3">
+                        {moonpayPaymentType === 'debit_card' 
+                          ? 'Pay with credit or debit card - MoonPay handles conversion to crypto automatically.'
+                          : `Pay with ${moonpayPaymentType.toUpperCase()} - MoonPay will send ${moonpayPaymentType === 'solana' ? 'SOL' : moonpayPaymentType === 'ethereum' ? 'ETH' : 'USDT'} to the platform wallet.`
+                        }
+                      </p>
+                    </div>
+                  )}
 
                   {/* Connected Wallet Payment */}
                   {paymentMethod === 'connected' && (
@@ -1233,6 +1449,71 @@ export default function CheckoutPage() {
                           <p className="text-xs text-gray-500 mt-1">≈ ${totalUsdc.toFixed(2)} USD</p>
                         )}
                       </div>
+                    </div>
+                  )}
+
+                  {/* MoonPay Payment */}
+                  {paymentMethod === 'moonpay' && (
+                    <div className="rounded-xl p-6 mb-6 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-blue-500 to-cyan-600">
+                          <CreditCard className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="text-white font-medium">Pay with MoonPay</h3>
+                          <p className="text-sm text-gray-400">
+                            {moonpayPaymentType === 'debit_card' 
+                              ? 'Pay with credit or debit card'
+                              : `Pay with ${moonpayPaymentType === 'solana' ? 'Solana (SOL)' : moonpayPaymentType === 'ethereum' ? 'Ethereum (ETH)' : 'USDT'}`
+                            }
+                          </p>
+                        </div>
+                      </div>
+
+                      {!moonpayUrl ? (
+                        <>
+                          <p className="text-sm text-gray-400 mb-4">
+                            MoonPay supports multiple payment methods. {moonpayPaymentType === 'debit_card' 
+                              ? 'You can pay with a credit or debit card, and MoonPay will automatically convert it to crypto for the merchant.'
+                              : `You can buy ${moonpayPaymentType === 'solana' ? 'SOL' : moonpayPaymentType === 'ethereum' ? 'ETH' : 'USDT'} with a credit/debit card or send from your existing wallet.`
+                            }
+                          </p>
+                          <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 mb-4">
+                            <p className="text-xs text-blue-400">
+                              <strong>Amount:</strong> ${totalUsdc.toFixed(2)} {moonpayPaymentType === 'debit_card' ? 'USD' : `(${moonpayPaymentType === 'solana' ? (totalUsdc / solPrice).toFixed(4) + ' SOL' : moonpayPaymentType === 'ethereum' ? (totalUsdc / 3000).toFixed(4) + ' ETH' : totalUsdc.toFixed(2) + ' USDT'})`}
+                            </p>
+                          </div>
+                          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                            <p className="text-xs text-yellow-400">
+                              <strong>Note:</strong> MoonPay will open in a new window. Complete your payment there, and you'll be redirected back when done.
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 text-center">
+                            <CheckCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                            <p className="text-sm text-green-400 font-medium mb-1">Payment Window Opened</p>
+                            <p className="text-xs text-gray-400">
+                              Complete your payment in the MoonPay window. If it didn't open, 
+                              <button
+                                onClick={() => window.open(moonpayUrl, 'moonpay', 'width=500,height=700,scrollbars=yes')}
+                                className="text-blue-400 hover:underline ml-1"
+                              >
+                                click here
+                              </button>
+                            </p>
+                          </div>
+                          <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                            <p className="text-xs text-blue-400">
+                              <strong>Order ID:</strong> {moonpayOrderId}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              We'll process your order automatically once MoonPay confirms your payment.
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -1454,6 +1735,29 @@ export default function CheckoutPage() {
                           <>
                             <CheckCircle className="w-5 h-5" />
                             Verify Payment
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    {paymentMethod === 'moonpay' && !moonpayUrl && (
+                      <button
+                        onClick={createMoonPayPayment}
+                        disabled={checkoutLoading}
+                        className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+                      >
+                        {checkoutLoading ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Creating Payment...
+                          </>
+                        ) : (
+                          <>
+                            <CreditCard className="w-5 h-5" />
+                            {moonpayPaymentType === 'debit_card' 
+                              ? 'Pay with Card'
+                              : `Buy ${moonpayPaymentType === 'solana' ? 'SOL' : moonpayPaymentType === 'ethereum' ? 'ETH' : 'USDT'}`
+                            }
                           </>
                         )}
                       </button>
